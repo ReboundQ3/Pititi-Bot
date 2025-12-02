@@ -5,16 +5,14 @@ using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
 var configuration = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile("appsettings.json", optional: true)
+    .AddEnvironmentVariables()
     .Build();
-    
-var token = configuration["Discord:Token"];
-var guildId = configuration["Discord:GuildId"];
-ulong guildIdUlong = ulong.Parse(guildId);
 
-// Set the config values
+var token = configuration["DISCORD_TOKEN"] ?? configuration["Discord:Token"];
+
+// Set the config value
 BotConfig.Token = token!;
-BotConfig.GuildId = guildIdUlong;
 
 // Configure the Discord client
 var discordConfig = new DiscordSocketConfig
@@ -61,10 +59,11 @@ async Task Ready()
     Console.WriteLine($"Is of CONNECTINGS YAYA! ({client.CurrentUser})");
 
     await InteractionService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
-    Console.WriteLine($"Loaded {InteractionService.Modules.Count()} modules");
+    Console.WriteLine($"Loaded {InteractionService.Modules.Count} modules");
 
-    await InteractionService.RegisterCommandsToGuildAsync(guildIdUlong);
-    Console.WriteLine($"Registered {InteractionService.SlashCommands.Count()} slash commands");
+    // Register commands globally (works on all servers)
+    await InteractionService.RegisterCommandsGloballyAsync();
+    Console.WriteLine($"Registered {InteractionService.SlashCommands.Count} global slash commands (may take up to 1 hour to propagate)");
 
     return;
 }
@@ -73,5 +72,4 @@ async Task Ready()
 public static class BotConfig
 {
     public static string Token { get; set; } = string.Empty;
-    public static ulong GuildId { get; set; }
 }

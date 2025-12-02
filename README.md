@@ -31,7 +31,7 @@ cd Pititi-Bot
 cp .env.example .env
 nano .env
 ```
-Add your Discord token and GitHub username.
+Add your Discord bot token.
 
 4. **Pull and run the bot**:
 ```bash

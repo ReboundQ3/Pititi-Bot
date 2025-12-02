@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: reboundq3/pititi-bot #Change this to your own username if you're gonna fork this
 
 jobs:
   build:
