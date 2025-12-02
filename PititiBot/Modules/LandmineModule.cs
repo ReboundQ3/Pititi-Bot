@@ -10,9 +10,9 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 
         if (action == "place")
         {
-            // Random number between 10 and 500
+            // Random number between 1 and 250
             var random = new Random();
-            var countdown = random.Next(10, 11);
+            var countdown = random.Next(1, 250);
 
             bool success = BotConfig.LandmineService.PlaceLandmine(channelId, countdown);
 
