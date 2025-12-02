@@ -4,7 +4,7 @@ using Discord.Interactions;
 public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
-    public async Task HandlePingCommand([Choice("Place", "place"), Choice("Remove", "remove")] string action)
+    public async Task HandleLandmineCommand([Choice("Place", "place"), Choice("Remove", "remove")] string action)
     {
         var channelId = Context.Channel.Id;
 
