@@ -1,0 +1,9 @@
+services:
+  pititi-bot:
+    image: ghcr.io/${GITHUB_USERNAME}/pititi-bot:latest
+    container_name: pititi-bot
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+    env_file:
+      - .env
