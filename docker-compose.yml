@@ -1,6 +1,6 @@
 services:
   pititi-bot:
-    image: ghcr.io/ReboundQ3/pititi-bot:latest
+    image: ghcr.io/reboundq3/pititi-bot:latest #Change this to your own, or use mine for upstream
     container_name: pititi-bot
     restart: unless-stopped
     env_file:
