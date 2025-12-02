@@ -18,7 +18,7 @@ BotConfig.Token = token!;
 var discordConfig = new DiscordSocketConfig
 {
     DefaultRetryMode = RetryMode.AlwaysRetry,
-    GatewayIntents = GatewayIntents.Guilds // Only use intents we need
+    GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
 };
 
 var client = new DiscordSocketClient(discordConfig);
@@ -28,6 +28,7 @@ var InteractionService = new InteractionService(client);
 client.Log += Log;
 InteractionService.Log += Log;
 client.Ready += Ready;
+client.MessageReceived += BotConfig.LandmineService.HandleMessage; // Note to self: Clean landmine handling!
 client.InteractionCreated += async interaction =>
 {
     Console.WriteLine($"Interaction received: {interaction.Type}");
@@ -39,6 +40,8 @@ client.InteractionCreated += async interaction =>
         Console.WriteLine($"Error executing command: {result.Error} - {result.ErrorReason}");
     }
 };
+
+
 
 // Login and start
 await client.LoginAsync(TokenType.Bot, token);
@@ -72,4 +75,5 @@ async Task Ready()
 public static class BotConfig
 {
     public static string Token { get; set; } = string.Empty;
+    public static PititiBot.Services.LandmineService LandmineService { get; set; } = new();
 }
