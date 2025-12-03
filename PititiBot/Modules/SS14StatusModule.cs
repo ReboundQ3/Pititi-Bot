@@ -124,7 +124,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
             if (success)
             {
-                await RespondAsync($"✅ **PITITI NOW WATCHING!!**\nPititi will tell you when:\n• Round starts 🚀\n• Round ends 🏁\n• New round begins 🔄\n\nWatching server: {serverUrl}", ephemeral: false);
+                await RespondAsync($"✅ **PITITI NOW WATCHING!!**\nPititi will tell you when:\n• Round starts 🚀\n• Round ends 🏁\n• New round begins 🔄\n\nWatching server: {serverUrl}", ephemeral: true);
             }
             else
             {
@@ -145,7 +145,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
             if (success)
             {
-                await RespondAsync("👋 **PITITI STOP WATCHING!!**\nPititi won't tell you about server anymore. Is sad...", ephemeral: false);
+                await RespondAsync("👋 **PITITI STOP WATCHING!!**\nPititi won't tell you about server anymore. Is sad...", ephemeral: true);
             }
             else
             {
