@@ -8,7 +8,7 @@ public class DiceModule : InteractionModuleBase<SocketInteractionContext>
 {
     [SlashCommand("dice", "Pititi throws dice")]
     public async Task HandleDiceCommand(
-        [Choice("D20", "d20"), Choice("D12", "d12"), Choice("D10", "d10"), Choice("D8", "d8"), Choice("D6", "d6"), Choice("D4", "d4")] string choice,
+        [Choice("D100", "d100"), Choice("D20", "d20"), Choice("D12", "d12"), Choice("D10", "d10"), Choice("D8", "d8"), Choice("D6", "d6"), Choice("D4", "d4")] string choice,
         [Summary("count", "How many dice to roll (1-10)")] int count = 1)
     {
         // Validate count
@@ -23,6 +23,10 @@ public class DiceModule : InteractionModuleBase<SocketInteractionContext>
 
         switch (choice)
         {
+            case "d100":
+                maxValue = 100;
+                diceName = "D100";
+                break;
             case "d20":
                 maxValue = 20;
                 diceName = "D20";
