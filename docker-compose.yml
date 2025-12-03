@@ -7,3 +7,5 @@ services:
       - .env
     volumes:
       - ./data:/app/Databases  # Persist databases between container restarts
+    environment:
+      - HOME=/app  # Ensure working directory is correctly set

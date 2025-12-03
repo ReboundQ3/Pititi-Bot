@@ -61,6 +61,8 @@ appsettings.Development.json
 # Databases
 Databases/
 data/
+!data/.gitkeep
+!data/README.md
 *.db
 *.db-shm
 *.db-wal
