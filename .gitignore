@@ -60,6 +60,7 @@ appsettings.Development.json
 
 # Databases
 Databases/
+data/
 *.db
 *.db-shm
 *.db-wal
