@@ -91,7 +91,7 @@ public class DiceModule : InteractionModuleBase<SocketInteractionContext>
                            total > (maxPossible + minPossible) / 2 ? "Is VERY good rolls!" :
                            "Is okay rolls!";
 
-            response = $"🎲 PITITI SHAKE {count}{diceName}!! Is rolling for {Context.User.Mention}...\n" +
+            response = $"🎲 PITITI SHAKE {count}{diceName}!! Is rolling for {Context.User.Mention} timings {count}...\n" +
                       $"Rolls: {rollsText}\n" +
                       $"**Total: {total}**! {flavor}";
         }
