@@ -1,5 +1,5 @@
 # Pititi-Bot
-A Space Station 14 Discord bot by Vox for Vox 🦎
+A Space Station 14 Discord bot by Vox for Vox
 
 HIHI IS OF PITITI!!
 
