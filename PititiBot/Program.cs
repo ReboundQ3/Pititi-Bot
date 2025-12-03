@@ -52,6 +52,11 @@ _client.InteractionCreated += async interaction =>
 await _client.LoginAsync(TokenType.Bot, token);
 await _client.StartAsync();
 
+// Start SS14 server monitoring in background
+BotConfig.SS14StatusService.SetDiscordClient(_client);
+_ = Task.Run(async () => await BotConfig.SS14StatusService.StartMonitoringAsync(TimeSpan.FromMinutes(1)));
+Console.WriteLine("#> Pititi started watching Space Station 14 server!");
+
 // Keep running
 await Task.Delay(-1);
 
@@ -81,4 +86,5 @@ public static class BotConfig
 {
     public static string Token { get; set; } = string.Empty;
     public static PititiBot.Services.LandmineService LandmineService { get; set; } = new();
+    public static PititiBot.Services.SS14StatusService SS14StatusService { get; set; } = new();
 }
