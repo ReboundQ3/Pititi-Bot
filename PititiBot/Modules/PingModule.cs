@@ -3,6 +3,7 @@ using Discord.Interactions;
 
 public class PingModule : InteractionModuleBase<SocketInteractionContext>
 {
+    [DefaultMemberPermissions(GuildPermission.ManageRoles)]
     [SlashCommand("ping", "Checks if Pititi is alive")]
     public async Task HandlePingCommand()
     {

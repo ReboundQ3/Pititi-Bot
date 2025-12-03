@@ -3,8 +3,9 @@ using Discord.Interactions;
 
 public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 {
+    [DefaultMemberPermissions(GuildPermission.ManageMessages)]
     [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
-    public async Task HandleLandmineCommand([Choice("Place", "place"), Choice("Remove", "remove")] string action)
+    public async Task HandleLandmineCommand([Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action)
     {
         var channelId = Context.Channel.Id;
 
@@ -35,6 +36,23 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
             }
 
             await RespondAsync($"PITITI TAKE BOOM BOX AWAY! 🧹 Was gonna boom in {remaining} messages. Is safe now!");
+        }
+        else if (action == "status")
+        {
+            bool hasLandmine = BotConfig.LandmineService.GetLandmineStatus(channelId, out int initial, out int remaining);
+
+            if (!hasLandmine)
+            {
+                await RespondAsync("NO BOOM BOX HERE! Is safe place, no boom!", ephemeral: true);
+                return;
+            }
+
+            var messagesElapsed = initial - remaining;
+            await RespondAsync($"🔍 PITITI CHECK BOOM BOX!!\n" +
+                             $"📋 Started at: **{initial}** messages\n" +
+                             $"💬 Messages passed: **{messagesElapsed}**\n" +
+                             $"⏱️ Remaining: **{remaining}** messages\n" +
+                             $"💣 Boom is coming... shhhh!", ephemeral: true);
         }
     }
 }

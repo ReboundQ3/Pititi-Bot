@@ -58,6 +58,12 @@ appsettings.json
 appsettings.Development.json
 .env
 
+# Databases
+Databases/
+*.db
+*.db-shm
+*.db-wal
+
 # Build results
 bin/
 obj

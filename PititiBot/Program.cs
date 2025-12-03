@@ -21,31 +21,36 @@ var discordConfig = new DiscordSocketConfig
     GatewayIntents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.MessageContent
 };
 
-var client = new DiscordSocketClient(discordConfig);
-var InteractionService = new InteractionService(client);
+var _client = new DiscordSocketClient(discordConfig);
+var _InteractionService = new InteractionService(_client);
 
 // Event handlers
-client.Log += Log;
-InteractionService.Log += Log;
-client.Ready += Ready;
-client.MessageReceived += BotConfig.LandmineService.HandleMessage; // Note to self: Clean landmine handling!
-client.InteractionCreated += async interaction =>
+_client.Log += Log;
+_InteractionService.Log += Log;
+_client.Ready += Ready;
+_client.MessageReceived += BotConfig.LandmineService.HandleMessage; // Note to self: Clean landmine handling!
+_client.InteractionCreated += async interaction =>
 {
-    Console.WriteLine($"Interaction received: {interaction.Type}");
-    var context = new SocketInteractionContext(client, interaction);
-    var result = await InteractionService.ExecuteCommandAsync(context, null);
+    var guildname = interaction.GuildId.HasValue ? _client.GetGuild(interaction.GuildId.Value) : null;
+    var commandName = interaction is SocketSlashCommand slashCommand ? slashCommand.Data.Name : interaction.Type.ToString();
+    var options = interaction is SocketSlashCommand cmd && cmd.Data.Options.Any()
+        ? " [" + string.Join(", ", cmd.Data.Options.Select(o => $"{o.Name}:{o.Value}")) + "]"
+        : "";
+    Console.WriteLine($"#> Interaction received: {commandName}{options} from {guildname} ({interaction.GuildId}) by {interaction.User.GlobalName} ({interaction.User.Id})");
+    var context = new SocketInteractionContext(_client, interaction);
+    var result = await _InteractionService.ExecuteCommandAsync(context, null);
 
     if (!result.IsSuccess)
     {
-        Console.WriteLine($"Error executing command: {result.Error} - {result.ErrorReason}");
+        Console.WriteLine($"#> Error executing command: {result.Error} - {result.ErrorReason}");
     }
 };
 
 
 
 // Login and start
-await client.LoginAsync(TokenType.Bot, token);
-await client.StartAsync();
+await _client.LoginAsync(TokenType.Bot, token);
+await _client.StartAsync();
 
 // Keep running
 await Task.Delay(-1);
@@ -59,14 +64,14 @@ Task Log(LogMessage msg)
 
 async Task Ready()
 {
-    Console.WriteLine($"Is of CONNECTINGS YAYA! ({client.CurrentUser})");
+    Console.WriteLine($"#> Is of CONNECTINGS YAYA! ({_client.CurrentUser})");
 
-    await InteractionService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
-    Console.WriteLine($"Loaded {InteractionService.Modules.Count} modules");
+    await _InteractionService.AddModulesAsync(Assembly.GetEntryAssembly(), null);
+    Console.WriteLine($"#> Loaded {_InteractionService.Modules.Count} modules");
 
     // Register commands globally (works on all servers)
-    await InteractionService.RegisterCommandsGloballyAsync();
-    Console.WriteLine($"Registered {InteractionService.SlashCommands.Count} global slash commands (may take up to 1 hour to propagate)");
+    await _InteractionService.RegisterCommandsGloballyAsync();
+    Console.WriteLine($"#> Registered {_InteractionService.SlashCommands.Count} global slash commands (may take up to 1 hour to propagate)");
 
     return;
 }
