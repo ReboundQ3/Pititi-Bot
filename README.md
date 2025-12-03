@@ -1,5 +1,6 @@
 # Pititi-Bot
 A Space Station 14 Discord bot by Vox for Vox
+Its very tailored to my spesific needs but hey, if you wish to use it go ahead!
 
 HIHI IS OF PITITI!!
 
@@ -32,6 +33,9 @@ Pititi throws dice for you!
 
 #### `/landmine`
 Pititi's boom box game! Place a landmine that explodes after a random number of messages.
+
+#### `/Server`
+A built in SS14 monitor, but this is in testing still 
 
 **Actions:**
 - **Place** - Plants a boom box that will explode after 1-250 random messages
