@@ -90,7 +90,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
             var embed = new EmbedBuilder()
                 .WithTitle("🚀 SPACE STATION 14 SERVER STATUS!!")
-                .WithDescription($"Pititi is watching **{status.name}**!")
+                .WithDescription($"🦤 Pititi is watching **{status.name}**!")
                 .WithColor(status.run_level == 1 ? Color.Green : Color.Orange)
                 .AddField("👥 Players", $"{status.players}/{status.soft_max_players}", inline: true)
                 .AddField("🎮 Round", $"#{status.round_id}", inline: true)
