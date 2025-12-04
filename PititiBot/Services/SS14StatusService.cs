@@ -199,9 +199,10 @@ public class SS14StatusService
                 {
                     var currentStatus = await GetServerStatusAsync(serverUrl);
 
-                    if (currentStatus != null && _lastStatusByUrl.TryGetValue(serverUrl, out var lastStatus) && lastStatus != null && _client != null)
+                    if (ShouldCheckForNotifications(currentStatus, serverUrl))
                     {
-                        await CheckForNotifications(serverUrl, currentStatus, lastStatus);
+                        var lastStatus = _lastStatusByUrl[serverUrl];
+                        await CheckForNotifications(serverUrl, currentStatus!, lastStatus!);
                     }
 
                     _lastStatusByUrl[serverUrl] = currentStatus;
@@ -294,20 +295,11 @@ public class SS14StatusService
                 var wantsRoundEnd = reader.GetInt32(2) == 1;
 
                 // Check if this channel wants this type of notification
-                if ((notifyRoundStart && wantsRoundStart) || (notifyRoundEnd && wantsRoundEnd))
+                bool shouldNotify = (notifyRoundStart && wantsRoundStart) || (notifyRoundEnd && wantsRoundEnd);
+
+                if (shouldNotify)
                 {
-                    try
-                    {
-                        var channel = _client.GetChannel(channelId) as Discord.IMessageChannel;
-                        if (channel != null)
-                        {
-                            await channel.SendMessageAsync(message);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"#> Pititi can't send to channel {channelId}! Error: {ex.Message}");
-                    }
+                    await SendMessageToChannel(channelId, message);
                 }
             }
         }
@@ -382,6 +374,38 @@ public class SS14StatusService
         {
             Console.WriteLine($"#> Pititi can't check subscription! Error: {ex.Message}");
             return false;
+        }
+    }
+
+    private bool ShouldCheckForNotifications(ServerStatus? currentStatus, string serverUrl)
+    {
+        if (currentStatus == null)
+            return false;
+
+        if (_client == null)
+            return false;
+
+        if (!_lastStatusByUrl.TryGetValue(serverUrl, out var lastStatus))
+            return false;
+
+        if (lastStatus == null)
+            return false;
+
+        return true;
+    }
+
+    private async Task SendMessageToChannel(ulong channelId, string message)
+    {
+        try
+        {
+            if (_client?.GetChannel(channelId) is Discord.IMessageChannel channel)
+            {
+                await channel.SendMessageAsync(message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't send to channel {channelId}! Error: {ex.Message}");
         }
     }
 }

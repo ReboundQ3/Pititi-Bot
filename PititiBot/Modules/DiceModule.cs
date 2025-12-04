@@ -1,6 +1,5 @@
 using Discord;
 using Discord.Interactions;
-using Microsoft.VisualBasic;
 
 namespace PititiBot.Modules;
 
@@ -72,11 +71,7 @@ public class DiceModule : InteractionModuleBase<SocketInteractionContext>
         if (count == 1)
         {
             var roll = rolls[0];
-            string flavor = roll == maxValue ? "**IS MAX!! PITITI SO LUCKY!!**" :
-                           roll == 1 ? "Oh no... is tiny number..." :
-                           roll > maxValue / 2 ? "Is good roll!" :
-                           "Hmm, not bad!";
-
+            string flavor = GetSingleRollFlavor(roll, maxValue);
             response = $"🎲 PITITI SHAKE {diceName}!! Is rolling for {Context.User.Mention}... \n**{roll}**! {flavor}";
         }
         else
@@ -86,16 +81,40 @@ public class DiceModule : InteractionModuleBase<SocketInteractionContext>
             var maxPossible = count * maxValue;
             var minPossible = count;
 
-            string flavor = total == maxPossible ? "**ALL MAX!! PITITI IS AMAZINGS!!**" :
-                           total == minPossible ? "Oh no... all tiny numbers..." :
-                           total > (maxPossible + minPossible) / 2 ? "Is VERY good rolls!" :
-                           "Is okay rolls!";
-
+            string flavor = GetMultipleRollFlavor(total, maxPossible, minPossible);
             response = $"🎲 PITITI SHAKE {count}{diceName}!! Is rolling for {Context.User.Mention} timings {count}...\n" +
                       $"Rolls: {rollsText}\n" +
                       $"**Total: {total}**! {flavor}";
         }
 
         await RespondAsync(response);
+    }
+
+    private string GetSingleRollFlavor(int roll, int maxValue)
+    {
+        if (roll == maxValue)
+            return "**IS MAX!! PITITI SO LUCKY!!**";
+
+        if (roll == 1)
+            return "Oh no... is tiny number...";
+
+        if (roll > maxValue / 2)
+            return "Is good roll!";
+
+        return "Hmm, not bad!";
+    }
+
+    private string GetMultipleRollFlavor(int total, int maxPossible, int minPossible)
+    {
+        if (total == maxPossible)
+            return "**ALL MAX!! PITITI IS AMAZINGS!!**";
+
+        if (total == minPossible)
+            return "Oh no... all tiny numbers...";
+
+        if (total > (maxPossible + minPossible) / 2)
+            return "Is VERY good rolls!";
+
+        return "Is okay rolls!";
     }
 }

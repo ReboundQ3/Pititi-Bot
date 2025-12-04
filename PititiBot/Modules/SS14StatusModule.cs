@@ -86,13 +86,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
             }
 
             // Determine run level status
-            string runLevelText = status.run_level switch
-            {
-                0 => "🔴 **LOBBY** - Waiting for round start!",
-                1 => "🟢 **PLAYING** - Round is HAPPENING!!",
-                2 => "🟡 **PAUSED** - Round is taking break!",
-                _ => $"⚪ **UNKNOWN** - Pititi confused about {status.run_level}?"
-            };
+            string runLevelText = GetRunLevelText(status.run_level);
 
             var embed = new EmbedBuilder()
                 .WithTitle("🚀 SPACE STATION 14 SERVER STATUS!!")
@@ -152,5 +146,19 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
                 await RespondAsync("❌ PITITI CAN'T STOP WATCHING!! Something went wrong...", ephemeral: true);
             }
         }
+    }
+
+    private static string GetRunLevelText(int runLevel)
+    {
+        if (runLevel == 0)
+            return "🔴 **LOBBY** - Waiting for round start!";
+
+        if (runLevel == 1)
+            return "🟢 **PLAYING** - Round is HAPPENING!!";
+
+        if (runLevel == 2)
+            return "🟡 **PAUSED** - Round is taking break!";
+
+        return $"⚪ **UNKNOWN** - Pititi confused about {runLevel}?";
     }
 }

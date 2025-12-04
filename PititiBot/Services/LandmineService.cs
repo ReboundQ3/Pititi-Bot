@@ -147,7 +147,10 @@ public class LandmineService
             command.Parameters.AddWithValue("$channelId", (long)channelId);
             var result = command.ExecuteScalar();
 
-            return result != null ? Convert.ToInt32(result) : 0;
+            if (result != null)
+                return Convert.ToInt32(result);
+
+            return 0;
         }
         catch (Exception ex)
         {
