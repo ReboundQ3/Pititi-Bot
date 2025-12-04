@@ -21,19 +21,25 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
     [SlashCommand("help", "Shows all commands")]
     public async Task HandleServerCommand()
     {
-        
+        var embed = await MakeEmbed();
+        await FollowupAsync(embed: embed);
     }
 
-    public async Task ConvertToEmbed()
+    public async Task<Embed> MakeEmbed()
     {
-        var embed = new EmbedBuilder()
+        var embedBuilder = new EmbedBuilder()
             .WithTitle("Pititi list of HELPINGS!!")
-            .WithDescription("These are the commands Pititi knows");
+            .WithDescription("These are the commands Pititi knows")
+            .WithTimestamp(DateTimeOffset.UtcNow)
+            .WithFooter("Pititi is of helpings!!");
 
         var slashCommands = _interactionService.SlashCommands.ToList();
         foreach (var slashCommand in slashCommands)
         {
-            embed.AddField($"{slashCommand.Name}",slashCommand.Description);
+            embedBuilder.AddField($"{slashCommand.Name}", slashCommand.Description);
         }
+
+        var embed = embedBuilder.Build();
+        return embed;
     }
 }
