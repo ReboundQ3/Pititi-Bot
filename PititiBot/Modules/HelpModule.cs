@@ -49,7 +49,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
                 }
             }
 
-            embedBuilder.AddField($"{slashCommand.Name} | {slashCommand.Parameters}", fieldValue);
+            embedBuilder.AddField($"{slashCommand.Name}", fieldValue);
         }
 
         var embed = embedBuilder.Build();
