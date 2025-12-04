@@ -37,7 +37,19 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
         var slashCommands = _interactionService.SlashCommands.ToList();
         foreach (var slashCommand in slashCommands)
         {
-            embedBuilder.AddField($"{slashCommand.Name} | {slashCommand.Parameters}", slashCommand.Description);
+            var fieldValue = slashCommand.Description;
+
+            // Add parameter details including choices
+            foreach (var parameter in slashCommand.Parameters)
+            {
+                if (parameter.Choices.Count > 0)
+                {
+                    var choicesList = string.Join(", ", parameter.Choices.Select(c => c.Name));
+                    fieldValue += $"\n**{parameter.Name}**: {choicesList}";
+                }
+            }
+
+            embedBuilder.AddField($"{slashCommand.Name} | {slashCommand.Parameters}", fieldValue);
         }
 
         var embed = embedBuilder.Build();
