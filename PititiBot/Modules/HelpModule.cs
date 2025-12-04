@@ -22,7 +22,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
     public async Task HandleServerCommand()
     {
         var embed = await MakeEmbed();
-        await FollowupAsync(embed: embed);
+        await RespondAsync(embed: embed);
     }
 
     public async Task<Embed> MakeEmbed()
