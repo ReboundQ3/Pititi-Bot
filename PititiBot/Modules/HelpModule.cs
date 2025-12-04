@@ -28,11 +28,11 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
     public async Task<Embed> MakeEmbed()
     {
         var embedBuilder = new EmbedBuilder()
-            .WithTitle("Pititi list of HELPINGS!!")
+            .WithTitle("🦤 Pititi list of HELPINGS!!")
             .WithDescription("These are the commands Pititi knows")
             .WithColor(Color.Green)
             .WithTimestamp(DateTimeOffset.UtcNow)
-            .WithFooter("Pititi is of helpings!!");
+            .WithFooter("YAYA!!");
 
         var slashCommands = _interactionService.SlashCommands.ToList();
         foreach (var slashCommand in slashCommands)
@@ -49,7 +49,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
                 }
             }
 
-            embedBuilder.AddField($"{slashCommand.Name}", fieldValue);
+            embedBuilder.AddField($"/{slashCommand.Name}", fieldValue);
         }
 
         var embed = embedBuilder.Build();
