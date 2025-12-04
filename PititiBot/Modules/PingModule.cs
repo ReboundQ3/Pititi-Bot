@@ -1,6 +1,8 @@
 using Discord;
 using Discord.Interactions;
 
+namespace PititiBot.Modules;
+
 public class PingModule : InteractionModuleBase<SocketInteractionContext>
 {
     [DefaultMemberPermissions(GuildPermission.ManageRoles)]

@@ -1,9 +1,6 @@
-using System.Reflection;
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.VisualBasic;
-using PititiBot.Services;
 
 namespace PititiBot.Modules;
 

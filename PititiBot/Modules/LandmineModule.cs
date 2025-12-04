@@ -1,6 +1,8 @@
 using Discord;
 using Discord.Interactions;
 
+namespace PititiBot.Modules;
+
 public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 {
     [DefaultMemberPermissions(GuildPermission.ManageMessages)]
