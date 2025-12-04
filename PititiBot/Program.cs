@@ -108,7 +108,7 @@ async Task HandleInteractionCreated(SocketInteraction interaction)
     Console.WriteLine($"#> Interaction received: {commandName}{options} from {guild} ({interaction.GuildId}) by {interaction.User.GlobalName} ({interaction.User.Id})");
 
     var context = new SocketInteractionContext(_client, interaction);
-    var result = await _InteractionService.ExecuteCommandAsync(context, null);
+    var result = await _InteractionService.ExecuteCommandAsync(context, services);
 
     if (!result.IsSuccess)
     {
