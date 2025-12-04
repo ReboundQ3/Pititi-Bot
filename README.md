@@ -1,4 +1,4 @@
-# Pititi-Bot <img width="256" height="256" alt="Pititi-South" src="https://github.com/user-attachments/assets/4bd5e48f-c2cc-435e-a69d-be37d313741b" />
+/4# Pititi-Bot <img width="64" height="64" alt="Pititi-South" src="https://github.com/user-attachments/assets/4bd5e48f-c2cc-435e-a69d-be37d313741b" />
 
 A Space Station 14 Discord bot by Vox for Vox
 Its very tailored to my spesific needs but hey, if you wish to use it go ahead!
