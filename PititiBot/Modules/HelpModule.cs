@@ -22,7 +22,7 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
     public async Task HandleServerCommand()
     {
         var embed = await MakeEmbed();
-        await RespondAsync(embed: embed);
+        await RespondAsync(embed: embed, ephemeral: true);
     }
 
     public async Task<Embed> MakeEmbed()
@@ -30,13 +30,14 @@ public class HelpModule : InteractionModuleBase<SocketInteractionContext>
         var embedBuilder = new EmbedBuilder()
             .WithTitle("Pititi list of HELPINGS!!")
             .WithDescription("These are the commands Pititi knows")
+            .WithColor(Color.Green)
             .WithTimestamp(DateTimeOffset.UtcNow)
             .WithFooter("Pititi is of helpings!!");
 
         var slashCommands = _interactionService.SlashCommands.ToList();
         foreach (var slashCommand in slashCommands)
         {
-            embedBuilder.AddField($"{slashCommand.Name}", slashCommand.Description);
+            embedBuilder.AddField($"{slashCommand.Name} | {slashCommand.Parameters}", slashCommand.Description);
         }
 
         var embed = embedBuilder.Build();
