@@ -26,7 +26,8 @@ var discordConfig = new DiscordSocketConfig
 var services = new ServiceCollection()
     .AddSingleton(discordConfig)
     .AddSingleton<DiscordSocketClient>()
-    .AddSingleton<InteractionService>()
+    .AddSingleton<InteractionService>(provider =>
+        new InteractionService(provider.GetRequiredService<DiscordSocketClient>()))
     .AddSingleton(BotConfig.LandmineService)
     .AddSingleton(BotConfig.SS14StatusService)
     .BuildServiceProvider();
