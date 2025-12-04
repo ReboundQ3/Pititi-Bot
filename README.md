@@ -1,11 +1,15 @@
-<img width="64" height="64" alt="Pititi-South" src="https://github.com/user-attachments/assets/4bd5e48f-c2cc-435e-a69d-be37d313741b" /> Pititi-Bot
+# <img width="64" height="64" alt="Pititi-South" src="https://github.com/user-attachments/assets/4bd5e48f-c2cc-435e-a69d-be37d313741b" /> Pititi-Bot
 
-A Space Station 14 Discord bot by Vox for Vox
-Its very tailored to my spesific needs but hey, if you wish to use it go ahead!
+![Beta](https://img.shields.io/badge/status-BETA-orange?style=for-the-badge)
 
-HIHI IS OF PITITI!!
+**HIHI IS OF PITITI!!**
+
+A Space Station 14 Discord bot by Vox for Vox. It's very tailored to my specific needs but hey, if you wish to use it go ahead!
+
+> **⚠️ BETA SOFTWARE:** This bot is currently in beta. Features may change, and you may encounter bugs. Use at your own risk!
 
 ## About
+
 Pititi is a small, enthusiastic VOX from Space Station 14 with a very basic understanding of English. This bot brings his charming personality to Discord!
 
 ## Features
@@ -35,19 +39,14 @@ Pititi throws dice for you!
 #### `/landmine`
 Pititi's boom box game! Place a landmine that explodes after a random number of messages.
 
-#### `/Server`
-A built in SS14 monitor, but this is in testing still 
-
 **Actions:**
 - **Place** - Plants a boom box that will explode after 1-250 random messages
   - Only one landmine per channel
   - Pititi keeps the countdown secret!
   - Permission Required: Manage Messages
-
 - **Remove** - Safely removes the boom box
   - Shows how many messages were remaining
   - Permission Required: Manage Messages
-
 - **Status** - Check boom box status (ephemeral)
   - Shows initial countdown
   - Shows messages passed
@@ -59,23 +58,29 @@ A built in SS14 monitor, but this is in testing still
 - Mentions who stepped on the boom box
 - Persistent storage using SQLite - survives bot restarts!
 
+#### `/server`
+A built-in SS14 monitor (currently in testing)
+
 ## Technical Details
 
 ### Built With
-- C# / .NET 8.0
-- Discord.Net (v3.18.0)
-- Microsoft.Data.Sqlite (v8.0.0)
-- Docker
+
+- **C# / .NET 8.0**
+- **Discord.Net** (v3.18.0)
+- **Microsoft.Data.Sqlite** (v8.0.0)
+- **Docker**
 
 ### Architecture
-- **Modules**: Slash command handlers (`/Modules`)
-- **Services**: Business logic and state management (`/Services`)
-- **Database**: SQLite database stored in `/Databases` folder
-- **Configuration**: Supports both `appsettings.json` and environment variables
+
+- **Modules:** Slash command handlers (`/Modules`)
+- **Services:** Business logic and state management (`/Services`)
+- **Database:** SQLite database stored in `/Databases` folder
+- **Configuration:** Supports both `appsettings.json` and environment variables
 
 ### Database
+
 Pititi uses SQLite to remember important things (like where he placed boom boxes):
-- Database location: `Databases/landmines.db`
+- **Database location:** `Databases/landmines.db`
 - Automatically created on first run
 - Survives bot restarts
 
@@ -130,12 +135,12 @@ dotnet run
 ## Configuration
 
 The bot supports configuration via:
-- `appsettings.json` (see `appsettings.template.json` for example)
-- Environment variables: `DISCORD_TOKEN`
+- **appsettings.json** (see `appsettings.template.json` for example)
+- **Environment variables:** `DISCORD_TOKEN`
 
 ## CI/CD
 
-The project includes GitHub Actions workflow that:
+The project includes a GitHub Actions workflow that:
 - Builds Docker images automatically
 - Pushes to GitHub Container Registry
 - Tags images with branch name, SHA, and `latest`
@@ -143,6 +148,7 @@ The project includes GitHub Actions workflow that:
 ## Development
 
 ### Project Structure
+
 ```
 PititiBot/
 ├── Modules/              # Discord slash command modules
@@ -159,13 +165,14 @@ PititiBot/
 
 ### Adding New Commands
 
-1. Create a new module in `Modules/` folder
+1. Create a new module in the `Modules/` folder
 2. Inherit from `InteractionModuleBase<SocketInteractionContext>`
 3. Add namespace: `namespace PititiBot.Modules;`
 4. Use `[SlashCommand]` attribute
 5. Write responses in Pititi's voice!
 
-Example:
+**Example:**
+
 ```csharp
 using Discord;
 using Discord.Interactions;
