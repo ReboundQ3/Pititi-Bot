@@ -61,6 +61,37 @@ Pititi's boom box game! Place a landmine that explodes after a random number of 
 #### `/server`
 A built-in SS14 monitor (currently in testing)
 
+#### `/report`
+Report bugs or request features for configured projects via GitHub!
+
+**Parameters:**
+- **type** - Choose between "Bug Report" or "Feature Request"
+- **repository** - Select which project to report to (dynamically filtered by server)
+
+**Features:**
+- Opens an interactive modal form for detailed reports
+- **Bug Reports include:**
+  - Title
+  - What happened?
+  - Expected behavior (optional)
+  - Screenshot URL (optional)
+- **Feature Requests include:**
+  - Title
+  - Description
+  - Why is this useful? (optional)
+  - Mockup/Example URL (optional)
+- Creates GitHub issues automatically with proper formatting
+- Issues are prefixed with `Bug:` or `Feature:` for easy identification
+- Includes reporter information (Discord username, ID, server)
+- Auto-applies labels if they exist (bug/enhancement/user-reported)
+- Server whitelist support - restrict which Discord servers can report to specific repositories
+
+**How to add screenshots:**
+1. Upload your image to Discord
+2. Right-click the image → Copy Link
+3. Paste the link in the "Image URL" field
+4. The image will be embedded in the GitHub issue
+
 ## Technical Details
 
 ### Built With
@@ -68,14 +99,19 @@ A built-in SS14 monitor (currently in testing)
 - **C# / .NET 8.0**
 - **Discord.Net** (v3.18.0)
 - **Microsoft.Data.Sqlite** (v8.0.0)
+- **Octokit** (v14.0.0) - GitHub API integration
+- **DotNetEnv** (v3.1.1) - Environment variable support
 - **Docker**
 
 ### Architecture
 
 - **Modules:** Slash command handlers (`/Modules`)
 - **Services:** Business logic and state management (`/Services`)
+  - `LandmineService` - Manages boom box game state
+  - `SS14StatusService` - Monitors Space Station 14 servers
+  - `GitHubService` - Handles GitHub API interactions for issue creation
 - **Database:** SQLite database stored in `/Databases` folder
-- **Configuration:** Supports both `appsettings.json` and environment variables
+- **Configuration:** Supports both `appsettings.json` and `.env` files
 
 ### Database
 
@@ -94,9 +130,26 @@ git clone https://github.com/yourusername/Pititi-Bot.git
 cd Pititi-Bot
 ```
 
-2. Create a `.env` file with your Discord token:
+2. Copy `.env.example` to `.env` and configure:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
 ```env
+# Discord Bot Token
 DISCORD_TOKEN=your_discord_bot_token_here
+
+# GitHub Integration (Optional - for /report command)
+GITHUB_TOKEN=ghp_your_github_token_here
+
+# Repository Configuration
+GitHub__Repositories__pititi-bot__Owner=ReboundQ3
+GitHub__Repositories__pititi-bot__Name=Pititi-Bot
+GitHub__Repositories__pititi-bot__DisplayName=Pititi Bot
+
+# Server Whitelists (Optional - restrict which servers can report)
+# REPO_PITITI-BOT_WHITELIST=1234567890123456789
 ```
 
 3. Run with Docker Compose:
@@ -134,9 +187,52 @@ dotnet run
 
 ## Configuration
 
-The bot supports configuration via:
-- **appsettings.json** (see `appsettings.template.json` for example)
-- **Environment variables:** `DISCORD_TOKEN`
+The bot supports configuration via `.env` files or `appsettings.json`:
+
+### Discord Configuration
+- `DISCORD_TOKEN` - Your Discord bot token (required)
+
+### GitHub Integration (Optional)
+Configure GitHub issue reporting:
+
+1. **Create a GitHub Personal Access Token:**
+   - Go to https://github.com/settings/tokens
+   - Click "Generate new token (classic)"
+   - Select scope: `repo` (Full control of private repositories)
+   - Copy the token
+
+2. **Configure repositories in `.env`:**
+```env
+GITHUB_TOKEN=ghp_your_token_here
+
+# Add repositories
+GitHub__Repositories__my-project__Owner=YourUsername
+GitHub__Repositories__my-project__Name=repo-name
+GitHub__Repositories__my-project__DisplayName=My Project
+
+# Optional: Restrict by server ID
+REPO_MY-PROJECT_WHITELIST=1234567890123456789,9876543210987654321
+```
+
+3. **Server Whitelists:**
+   - Control which Discord servers can report to each repository
+   - Format: `REPO_<REPO_KEY>_WHITELIST=server_id1,server_id2`
+   - If not set, all servers can report to that repository
+   - Get server IDs: Enable Developer Mode in Discord → Right-click server → Copy Server ID
+
+**Examples:**
+```env
+# Pititi Bot - accessible from all servers (no whitelist)
+# REPO_PITITI-BOT_WHITELIST=
+
+# Sector Vestige - only from specific server
+REPO_SECTOR-VESTIGE_WHITELIST=1234567890123456789
+
+# Project X - accessible from multiple servers
+REPO_PROJECT-X_WHITELIST=111111111111111111,222222222222222222
+```
+
+See `appsettings.template.json` for JSON-based configuration example.
 
 ## CI/CD
 
@@ -151,16 +247,24 @@ The project includes a GitHub Actions workflow that:
 
 ```
 PititiBot/
-├── Modules/              # Discord slash command modules
+├── Modules/                    # Discord slash command modules
 │   ├── CoinFlipModule.cs
 │   ├── DiceModule.cs
+│   ├── EightballModule.cs
+│   ├── GitHubIssueModule.cs   # GitHub issue reporting
+│   ├── HelpModule.cs
 │   ├── LandmineModule.cs
-│   └── PingModule.cs
-├── Services/             # Business logic services
-│   └── LandmineService.cs
-├── Databases/            # SQLite databases (gitignored)
+│   ├── PingModule.cs
+│   └── SS14StatusModule.cs
+├── Services/                   # Business logic services
+│   ├── GitHubService.cs       # GitHub API integration
+│   ├── LandmineService.cs
+│   └── SS14StatusService.cs
+├── Databases/                  # SQLite databases (gitignored)
 │   └── landmines.db
-└── Program.cs            # Application entry point
+├── Program.cs                  # Application entry point
+├── .env.example               # Environment configuration template
+└── appsettings.template.json  # JSON configuration template
 ```
 
 ### Adding New Commands

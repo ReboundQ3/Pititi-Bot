@@ -92,13 +92,13 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
                         $"**Server:** {Context.Guild?.Name ?? "DM"}\n" +
                         $"**Reported via:** Pititi Bot";
 
-            var issue = await _githubService.CreateIssueAsync(repository, modal.Title, issueBody, "bug");
+            var issue = await _githubService.CreateIssueAsync(repository, modal.BugTitle, issueBody, "bug");
 
             var embed = new EmbedBuilder()
                 .WithTitle("🐛 Bug Report Created!")
                 .WithDescription("Your bug report has been submitted. Thank you!")
                 .WithColor(Color.Red)
-                .AddField("Title", modal.Title)
+                .AddField("Title", modal.BugTitle)
                 .AddField("Issue Number", $"#{issue.Number}")
                 .AddField("URL", issue.HtmlUrl)
                 .WithTimestamp(DateTimeOffset.UtcNow)
@@ -138,13 +138,13 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
                         $"**Server:** {Context.Guild?.Name ?? "DM"}\n" +
                         $"**Requested via:** Pititi Bot";
 
-            var issue = await _githubService.CreateIssueAsync(repository, modal.Title, issueBody, "feature");
+            var issue = await _githubService.CreateIssueAsync(repository, modal.FeatureTitle, issueBody, "feature");
 
             var embed = new EmbedBuilder()
                 .WithTitle("✨ Feature Request Created!")
                 .WithDescription("Your feature request has been submitted. Thank you!")
                 .WithColor(Color.Blue)
-                .AddField("Title", modal.Title)
+                .AddField("Title", modal.FeatureTitle)
                 .AddField("Issue Number", $"#{issue.Number}")
                 .AddField("URL", issue.HtmlUrl)
                 .WithTimestamp(DateTimeOffset.UtcNow)
