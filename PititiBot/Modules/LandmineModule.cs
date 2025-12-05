@@ -63,7 +63,7 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
             var messagesElapsed = initial - remaining;
 
             var embedBuilder = new EmbedBuilder()
-                .WithTitle("Pititi boombox of checkings!")
+                .WithTitle("🦤 Pititi boombox of checkings!")
                 .WithDescription("Pititi will check the landmine status")
                 .AddField($"Placed down by", placedByUsername)
                 .AddField($"Placed down at", DateTimeOffset.UtcNow)
