@@ -4,6 +4,10 @@ using Discord.Interactions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using DotNetEnv;
+
+// Load .env file if it exists
+Env.Load();
 
 var configuration = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: true)
@@ -14,6 +18,23 @@ var token = configuration["DISCORD_TOKEN"] ?? configuration["Discord:Token"];
 
 // Set the config value
 BotConfig.Token = token!;
+
+// Setup GitHub Service
+var githubToken = configuration["GITHUB_TOKEN"] ?? configuration["GitHub:PersonalAccessToken"];
+var repositories = new Dictionary<string, PititiBot.Services.RepositoryConfig>();
+
+var repoSection = configuration.GetSection("GitHub:Repositories");
+foreach (var repoConfig in repoSection.GetChildren())
+{
+    repositories[repoConfig.Key] = new PititiBot.Services.RepositoryConfig
+    {
+        Owner = repoConfig["Owner"] ?? "",
+        Name = repoConfig["Name"] ?? "",
+        DisplayName = repoConfig["DisplayName"] ?? repoConfig.Key
+    };
+}
+
+BotConfig.GitHubService = new PititiBot.Services.GitHubService(githubToken ?? "", repositories);
 
 // Configure the Discord client
 var discordConfig = new DiscordSocketConfig
@@ -30,6 +51,7 @@ var services = new ServiceCollection()
         new InteractionService(provider.GetRequiredService<DiscordSocketClient>()))
     .AddSingleton(BotConfig.LandmineService)
     .AddSingleton(BotConfig.SS14StatusService)
+    .AddSingleton(BotConfig.GitHubService)
     .BuildServiceProvider();
 
 var _client = services.GetRequiredService<DiscordSocketClient>();
@@ -127,4 +149,5 @@ public static class BotConfig
     public static string Token { get; set; } = string.Empty;
     public static PititiBot.Services.LandmineService LandmineService { get; set; } = new();
     public static PititiBot.Services.SS14StatusService SS14StatusService { get; set; } = new();
+    public static PititiBot.Services.GitHubService GitHubService { get; set; } = null!;
 }
