@@ -23,21 +23,45 @@ public class GitHubService
             throw new ArgumentException($"Repository '{repositoryKey}' not found in configuration");
         }
 
-        var newIssue = new NewIssue(title)
+        // Prefix title with issue type
+        var prefix = issueType.ToLower() switch
+        {
+            "bug" => "Bug:",
+            "feature" => "Feature:",
+            "question" => "Question:",
+            _ => ""
+        };
+        var issueTitle = string.IsNullOrEmpty(prefix) ? title : $"{prefix} {title}";
+
+        var newIssue = new NewIssue(issueTitle)
         {
             Body = body
         };
 
-        // Add labels based on issue type
-        var label = issueType.ToLower() switch
+        // Try to add labels if they exist, but don't fail if we can't
+        try
         {
-            "bug" => "bug",
-            "feature" => "enhancement",
-            "question" => "question",
-            _ => "user-reported"
-        };
-        newIssue.Labels.Add(label);
-        newIssue.Labels.Add("user-reported");
+            var label = issueType.ToLower() switch
+            {
+                "bug" => "bug",
+                "feature" => "enhancement",
+                "question" => "question",
+                _ => "user-reported"
+            };
+
+            // Check if labels exist first
+            var existingLabels = await _client.Issue.Labels.GetAllForRepository(repo.Owner, repo.Name);
+            var labelNames = existingLabels.Select(l => l.Name).ToList();
+
+            if (labelNames.Contains(label))
+                newIssue.Labels.Add(label);
+            if (labelNames.Contains("user-reported"))
+                newIssue.Labels.Add("user-reported");
+        }
+        catch
+        {
+            // Silently ignore label errors - labels are nice to have, not required
+        }
 
         var issue = await _client.Issue.Create(repo.Owner, repo.Name, newIssue);
         return issue;
