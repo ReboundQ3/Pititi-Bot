@@ -14,8 +14,12 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
         _githubService = githubService;
     }
 
-    [SlashCommand("bug", "Report a bug")]
-    public async Task BugCommand(
+    [SlashCommand("report", "Report a bug or request a feature")]
+    public async Task ReportCommand(
+        [Summary("type", "What type of report?")]
+        [Choice("Bug Report", "bug")]
+        [Choice("Feature Request", "feature")]
+        string type,
         [Summary("repository", "Which project to report to")]
         [Autocomplete(typeof(RepositoryAutocompleteHandler))]
         string repository)
@@ -23,53 +27,45 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
         // Validate repository access
         if (!_githubService.IsServerAllowed(repository, Context.Guild?.Id))
         {
-            await RespondAsync("You are not allowed to report bugs for this project from this server.", ephemeral: true);
+            await RespondAsync("You are not allowed to report to this project from this server.", ephemeral: true);
             return;
         }
 
-        var modal = new ModalBuilder()
-            .WithTitle($"Bug Report - {_githubService.GetRepositoryDisplayName(repository)}")
-            .WithCustomId($"bug_modal:{repository}")
-            .AddTextInput("Title", "bug_title", TextInputStyle.Short,
-                "Brief description of the bug", 1, 100, true)
-            .AddTextInput("What happened?", "bug_description", TextInputStyle.Paragraph,
-                "Describe what went wrong", 10, 2000, true)
-            .AddTextInput("Expected behavior", "bug_expected", TextInputStyle.Paragraph,
-                "What should have happened instead?", 10, 1000, false)
-            .AddTextInput("Image URL (optional)", "bug_image", TextInputStyle.Short,
-                "Paste a link to a screenshot (upload to Discord first, then copy link)", 0, 500, false)
-            .Build();
-
-        await RespondWithModalAsync(modal);
-    }
-
-    [SlashCommand("feature", "Request a new feature")]
-    public async Task FeatureCommand(
-        [Summary("repository", "Which project to request for")]
-        [Autocomplete(typeof(RepositoryAutocompleteHandler))]
-        string repository)
-    {
-        // Validate repository access
-        if (!_githubService.IsServerAllowed(repository, Context.Guild?.Id))
+        // Build modal based on type
+        if (type == "bug")
         {
-            await RespondAsync("You are not allowed to request features for this project from this server.", ephemeral: true);
-            return;
+            var modal = new ModalBuilder()
+                .WithTitle($"Bug Report - {_githubService.GetRepositoryDisplayName(repository)}")
+                .WithCustomId($"bug_modal:{repository}")
+                .AddTextInput("Title", "bug_title", TextInputStyle.Short,
+                    "Brief description of the bug", 1, 100, true)
+                .AddTextInput("What happened?", "bug_description", TextInputStyle.Paragraph,
+                    "Describe what went wrong", 10, 2000, true)
+                .AddTextInput("Expected behavior", "bug_expected", TextInputStyle.Paragraph,
+                    "What should have happened instead?", 10, 1000, false)
+                .AddTextInput("Image URL (optional)", "bug_image", TextInputStyle.Short,
+                    "Paste a link to a screenshot (upload to Discord first, then copy link)", 0, 500, false)
+                .Build();
+
+            await RespondWithModalAsync(modal);
         }
+        else // feature
+        {
+            var modal = new ModalBuilder()
+                .WithTitle($"Feature Request - {_githubService.GetRepositoryDisplayName(repository)}")
+                .WithCustomId($"feature_modal:{repository}")
+                .AddTextInput("Title", "feature_title", TextInputStyle.Short,
+                    "Brief description of the feature", 1, 100, true)
+                .AddTextInput("Description", "feature_description", TextInputStyle.Paragraph,
+                    "Describe what you'd like to see added", 10, 2000, true)
+                .AddTextInput("Why is this useful?", "feature_reason", TextInputStyle.Paragraph,
+                    "Explain the benefit of this feature", 10, 1000, false)
+                .AddTextInput("Image URL (optional)", "feature_image", TextInputStyle.Short,
+                    "Paste a link to a mockup/example (upload to Discord first, then copy link)", 0, 500, false)
+                .Build();
 
-        var modal = new ModalBuilder()
-            .WithTitle($"Feature Request - {_githubService.GetRepositoryDisplayName(repository)}")
-            .WithCustomId($"feature_modal:{repository}")
-            .AddTextInput("Title", "feature_title", TextInputStyle.Short,
-                "Brief description of the feature", 1, 100, true)
-            .AddTextInput("Description", "feature_description", TextInputStyle.Paragraph,
-                "Describe what you'd like to see added", 10, 2000, true)
-            .AddTextInput("Why is this useful?", "feature_reason", TextInputStyle.Paragraph,
-                "Explain the benefit of this feature", 10, 1000, false)
-            .AddTextInput("Image URL (optional)", "feature_image", TextInputStyle.Short,
-                "Paste a link to a mockup/example (upload to Discord first, then copy link)", 0, 500, false)
-            .Build();
-
-        await RespondWithModalAsync(modal);
+            await RespondWithModalAsync(modal);
+        }
     }
 
     [ModalInteraction("bug_modal:*")]
@@ -138,7 +134,7 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
                 issueBody += $"## Mockup/Example\n![Example]({modal.ImageUrl.Trim()})\n\n";
             }
 
-            issueBody += $"---\n**Requested by:** {Context.User.Username}\n" +
+            issueBody += $"---\n**Requested by:** {Context.User.Username} (Discord ID: {Context.User.Id})\n" +
                         $"**Server:** {Context.Guild?.Name ?? "DM"}\n" +
                         $"**Requested via:** Pititi Bot";
 
@@ -163,7 +159,6 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
             await FollowupAsync($"Failed to create feature request: {ex.Message}\nPlease contact the bot administrator.", ephemeral: true);
         }
     }
-
 }
 
 // Autocomplete handler to dynamically show repository options based on server
