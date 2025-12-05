@@ -28,7 +28,9 @@ public class LandmineService
                 CREATE TABLE IF NOT EXISTS Landmines (
                     ChannelId INTEGER PRIMARY KEY,
                     InitialCountdown INTEGER NOT NULL,
-                    RemainingMessages INTEGER NOT NULL
+                    RemainingMessages INTEGER NOT NULL,
+                    PlacedByUserId INTEGER,
+                    PlacedByUsername TEXT
                 )";
             command.ExecuteNonQuery();
 
@@ -47,7 +49,7 @@ public class LandmineService
         }
     }
 
-    public bool PlaceLandmine(ulong channelId, int countdown)
+    public bool PlaceLandmine(ulong channelId, int countdown, ulong userId, string username)
     {
         try
         {
@@ -66,10 +68,12 @@ public class LandmineService
             // Insert new landmine
             var insertCommand = connection.CreateCommand();
             insertCommand.CommandText = @"
-                INSERT INTO Landmines (ChannelId, InitialCountdown, RemainingMessages)
-                VALUES ($channelId, $countdown, $countdown)";
+                INSERT INTO Landmines (ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername)
+                VALUES ($channelId, $countdown, $countdown, $userId, $username)";
             insertCommand.Parameters.AddWithValue("$channelId", (long)channelId);
             insertCommand.Parameters.AddWithValue("$countdown", countdown);
+            insertCommand.Parameters.AddWithValue("$userId", (long)userId);
+            insertCommand.Parameters.AddWithValue("$username", username);
             insertCommand.ExecuteNonQuery();
 
             return true;
@@ -159,10 +163,11 @@ public class LandmineService
         }
     }
 
-    public bool GetLandmineStatus(ulong channelId, out int initialCountdown, out int remainingMessages)
+    public bool GetLandmineStatus(ulong channelId, out int initialCountdown, out int remainingMessages, out string placedByUsername)
     {
         initialCountdown = 0;
         remainingMessages = 0;
+        placedByUsername = string.Empty;
 
         try
         {
@@ -170,7 +175,7 @@ public class LandmineService
             connection.Open();
 
             var command = connection.CreateCommand();
-            command.CommandText = "SELECT InitialCountdown, RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
+            command.CommandText = "SELECT InitialCountdown, RemainingMessages, PlacedByUsername FROM Landmines WHERE ChannelId = $channelId";
             command.Parameters.AddWithValue("$channelId", (long)channelId);
 
             using var reader = command.ExecuteReader();
@@ -178,6 +183,7 @@ public class LandmineService
             {
                 initialCountdown = reader.GetInt32(0);
                 remainingMessages = reader.GetInt32(1);
+                placedByUsername = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2);
                 return true;
             }
 
