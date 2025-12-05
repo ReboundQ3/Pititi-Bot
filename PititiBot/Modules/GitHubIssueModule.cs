@@ -134,7 +134,7 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
                 issueBody += $"## Mockup/Example\n![Example]({modal.ImageUrl.Trim()})\n\n";
             }
 
-            issueBody += $"---\n**Requested by:** {Context.User.Username} (Discord ID: {Context.User.Id})\n" +
+            issueBody += $"---\n**Requested by:** {Context.User.Username}\n" +
                         $"**Server:** {Context.Guild?.Name ?? "DM"}\n" +
                         $"**Requested via:** Pititi Bot";
 
