@@ -16,11 +16,7 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
 
     [SlashCommand("report", "Report a bug or request a feature")]
     public async Task ReportCommand(
-        [Summary("repository", "Which project to report to")]
-        [Choice("Pititi Bot", "pititi-bot")]
-        [Choice("Sector Vestige", "sector-vestige")]
-        // [Choice("Sector Vestige", "sector-vestige")] Add more choises as nessisairy
-        string repository)
+        [Choice("Pititi Bot", "pititi-bot"), Choice("Sector Vestige", "sector-vestige")] string repository)
     {
         var modal = new ModalBuilder()
             .WithTitle($"Report Issue - {_githubService.GetRepositoryDisplayName(repository)}")
