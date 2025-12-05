@@ -35,13 +35,34 @@ else
 var repoSection = configuration.GetSection("GitHub:Repositories");
 foreach (var repoConfig in repoSection.GetChildren())
 {
+    // Parse server whitelist for this repository
+    HashSet<ulong>? serverWhitelist = null;
+    var whitelistEnvVar = configuration[$"REPO_{repoConfig.Key.ToUpper()}_WHITELIST"];
+    var whitelistConfig = repoConfig["ServerWhitelist"];
+    var whitelistString = whitelistEnvVar ?? whitelistConfig;
+
+    if (!string.IsNullOrEmpty(whitelistString))
+    {
+        var whitelistIds = whitelistString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(id => id.Trim())
+            .Where(id => ulong.TryParse(id, out _))
+            .Select(ulong.Parse);
+
+        serverWhitelist = new HashSet<ulong>(whitelistIds);
+    }
+
     repositories[repoConfig.Key] = new PititiBot.Services.RepositoryConfig
     {
         Owner = repoConfig["Owner"] ?? "",
         Name = repoConfig["Name"] ?? "",
-        DisplayName = repoConfig["DisplayName"] ?? repoConfig.Key
+        DisplayName = repoConfig["DisplayName"] ?? repoConfig.Key,
+        ServerWhitelist = serverWhitelist
     };
-    Console.WriteLine($"#> Loaded repository: {repoConfig.Key} -> {repoConfig["Owner"]}/{repoConfig["Name"]}");
+
+    var accessInfo = serverWhitelist == null || serverWhitelist.Count == 0
+        ? "all servers"
+        : $"{serverWhitelist.Count} whitelisted server(s)";
+    Console.WriteLine($"#> Loaded repository: {repoConfig.Key} -> {repoConfig["Owner"]}/{repoConfig["Name"]} (accessible by: {accessInfo})");
 }
 
 BotConfig.GitHubService = new PititiBot.Services.GitHubService(githubToken ?? "", repositories);

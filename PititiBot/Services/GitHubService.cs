@@ -52,6 +52,30 @@ public class GitHubService
     {
         return _repositories.TryGetValue(key, out var repo) ? repo.DisplayName : key;
     }
+
+    public bool IsServerAllowed(string repositoryKey, ulong? guildId)
+    {
+        if (!_repositories.TryGetValue(repositoryKey, out var repo))
+            return false;
+
+        // If no whitelist configured, allow all
+        if (repo.ServerWhitelist == null || repo.ServerWhitelist.Count == 0)
+            return true;
+
+        // If no guild (DM), deny if whitelist exists
+        if (guildId == null)
+            return false;
+
+        // Check if server is in whitelist
+        return repo.ServerWhitelist.Contains(guildId.Value);
+    }
+
+    public IEnumerable<string> GetAllowedRepositories(ulong? guildId)
+    {
+        return _repositories
+            .Where(kvp => IsServerAllowed(kvp.Key, guildId))
+            .Select(kvp => kvp.Key);
+    }
 }
 
 public class RepositoryConfig
@@ -59,4 +83,5 @@ public class RepositoryConfig
     public string Owner { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
+    public HashSet<ulong>? ServerWhitelist { get; set; } = null;
 }
