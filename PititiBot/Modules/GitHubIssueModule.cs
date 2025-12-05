@@ -88,7 +88,7 @@ public class GitHubIssueModule : InteractionModuleBase<SocketInteractionContext>
                 issueBody += $"## Screenshot\n![Screenshot]({modal.ImageUrl.Trim()})\n\n";
             }
 
-            issueBody += $"---\n**Reported by:** {Context.User.Username} (Discord ID: {Context.User.Id})\n" +
+            issueBody += $"---\n**Reported by:** {Context.User.Username}\n" +
                         $"**Server:** {Context.Guild?.Name ?? "DM"}\n" +
                         $"**Reported via:** Pititi Bot";
 
