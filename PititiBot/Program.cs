@@ -23,6 +23,15 @@ BotConfig.Token = token!;
 var githubToken = configuration["GITHUB_TOKEN"] ?? configuration["GitHub:PersonalAccessToken"];
 var repositories = new Dictionary<string, PititiBot.Services.RepositoryConfig>();
 
+if (string.IsNullOrEmpty(githubToken))
+{
+    Console.WriteLine("#> WARNING: GitHub token not found! Issue reporting will not work.");
+}
+else
+{
+    Console.WriteLine($"#> GitHub token loaded: {githubToken.Substring(0, Math.Min(10, githubToken.Length))}...");
+}
+
 var repoSection = configuration.GetSection("GitHub:Repositories");
 foreach (var repoConfig in repoSection.GetChildren())
 {
@@ -32,6 +41,7 @@ foreach (var repoConfig in repoSection.GetChildren())
         Name = repoConfig["Name"] ?? "",
         DisplayName = repoConfig["DisplayName"] ?? repoConfig.Key
     };
+    Console.WriteLine($"#> Loaded repository: {repoConfig.Key} -> {repoConfig["Owner"]}/{repoConfig["Name"]}");
 }
 
 BotConfig.GitHubService = new PititiBot.Services.GitHubService(githubToken ?? "", repositories);
