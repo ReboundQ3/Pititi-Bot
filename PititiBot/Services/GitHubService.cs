@@ -27,7 +27,7 @@ public class GitHubService
         var prefix = issueType.ToLower() switch
         {
             "bug" => "Bug:",
-            "feature" => "Feature:",
+            "feature" => "Feature request:",
             "question" => "Question:",
             _ => ""
         };
@@ -44,7 +44,7 @@ public class GitHubService
             var label = issueType.ToLower() switch
             {
                 "bug" => "bug",
-                "feature" => "enhancement",
+                "feature" => "feature request",
                 "question" => "question",
                 _ => "user-reported"
             };
