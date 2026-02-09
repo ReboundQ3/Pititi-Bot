@@ -83,7 +83,7 @@ Report bugs or request features for configured projects via GitHub!
 - Creates GitHub issues automatically with proper formatting
 - Issues are prefixed with `Bug:` or `Feature:` for easy identification
 - Includes reporter information (Discord username, ID, server)
-- Auto-applies labels if they exist (bug/enhancement/user-reported)
+- Auto-applies labels if they exist (bug/feature-request/user-reported)
 - Server whitelist support - restrict which Discord servers can report to specific repositories
 
 **How to add screenshots:**
@@ -96,7 +96,7 @@ Report bugs or request features for configured projects via GitHub!
 
 ### Built With
 
-- **C# / .NET 8.0**
+- **C# / .NET 10.0**
 - **Discord.Net** (v3.18.0)
 - **Microsoft.Data.Sqlite** (v8.0.0)
 - **Octokit** (v14.0.0) - GitHub API integration
