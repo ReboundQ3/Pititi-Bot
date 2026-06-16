@@ -1,7 +1,6 @@
 using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.VisualBasic;
 
 namespace PititiBot.Modules;
 
@@ -18,7 +17,9 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 
     [DefaultMemberPermissions(GuildPermission.ManageMessages)]
     [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
-    public async Task HandleLandmineCommand([Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action)
+    public async Task HandleLandmineCommand(
+        [Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action,
+        [Summary("id", "The boom box Id to remove (see Status). Only used with Remove.")] long id = 0)
     {
         var channelId = Context.Channel.Id;
 
@@ -28,54 +29,67 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
             var random = new Random();
             var countdown = random.Next(1, 250);
 
-            bool success = BotConfig.LandmineService.PlaceLandmine(channelId, countdown, Context.User.Id, Context.User.GlobalName ?? Context.User.Username);
+            var landmine = BotConfig.LandmineService.PlaceLandmine(channelId, countdown, Context.User.Id, Context.User.GlobalName ?? Context.User.Username);
 
-            if (!success)
+            if (landmine == null)
             {
-                await RespondAsync("PITITI ALREADY PUT BOOM BOX HERE! Only one boom per place!", ephemeral: true);
+                await RespondAsync("PITITI BOOM BOX BROKE! No place this time, try again!", ephemeral: true);
                 return;
             }
 
-            await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 Will go BOOM in.. Shhhh Gorb say is secret");
+            await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 (#{landmine.Id}) Will go BOOM in.. Shhhh Gorb say is secret");
         }
         else if (action == "remove")
         {
-            bool success = BotConfig.LandmineService.RemoveLandmine(channelId, out int remaining);
-
-            if (!success)
+            if (id <= 0)
             {
-                await RespondAsync("NO BOOM BOX HERE! Pititi already took it or never put it!", ephemeral: true);
+                await RespondAsync("PITITI NEED NUMBER! Tell Pititi which boom box Id to take (look at Status to see them)!", ephemeral: true);
                 return;
             }
 
-            await RespondAsync($"PITITI TAKE BOOM BOX AWAY! 🧹 Was gonna boom in {remaining} messages. Is safe now!");
+            var removed = BotConfig.LandmineService.RemoveLandmine(channelId, id);
+
+            if (removed == null)
+            {
+                await RespondAsync($"NO BOOM BOX #{id} HERE! Pititi already took it or never put it!", ephemeral: true);
+                return;
+            }
+
+            await RespondAsync($"PITITI TAKE BOOM BOX #{removed.Id} AWAY! 🧹 Was gonna boom in {removed.RemainingMessages} messages. Is safe now!");
         }
         else if (action == "status")
         {
-            bool hasLandmine = BotConfig.LandmineService.GetLandmineStatus(channelId, out int initial, out int remaining, out string placedByUsername);
+            var landmines = BotConfig.LandmineService.GetLandmines(channelId);
 
-            if (!hasLandmine)
+            if (landmines.Count == 0)
             {
                 await RespondAsync("NO BOOM BOX HERE! Is safe place, no boom!", ephemeral: true);
                 return;
             }
 
-            var messagesElapsed = initial - remaining;
-
             var embedBuilder = new EmbedBuilder()
                 .WithTitle("🦤 Pititi boombox of checkings!")
-                .WithDescription("Pititi will check the landmine status")
-                .AddField($"Placed down by", placedByUsername)
-                .AddField($"Placed down at", DateTimeOffset.UtcNow)
-                .AddField($"Messages passed:", messagesElapsed)
-                .AddField($"Remaining:", remaining)
+                .WithDescription($"Pititi count {landmines.Count} boom box(es) in here!")
                 .WithColor(Color.Green)
                 .WithTimestamp(DateTimeOffset.UtcNow)
                 .WithFooter("YAYA!!");
 
-            var embed = embedBuilder.Build();
+            // Discord embeds allow at most 25 fields.
+            const int maxFields = 25;
+            foreach (var landmine in landmines.Take(maxFields))
+            {
+                embedBuilder.AddField(
+                    $"💣 Boom box #{landmine.Id}",
+                    $"Placed by **{landmine.PlacedByUsername}** <t:{landmine.PlacedAt.ToUnixTimeSeconds()}:R>\n" +
+                    $"Messages passed: {landmine.MessagesElapsed} • Remaining: {landmine.RemainingMessages}");
+            }
 
-            await RespondAsync(embed: embed, ephemeral: true);
+            if (landmines.Count > maxFields)
+            {
+                embedBuilder.WithFooter($"YAYA!! ...and {landmines.Count - maxFields} more boom box(es) Pititi no show here!");
+            }
+
+            await RespondAsync(embed: embedBuilder.Build(), ephemeral: true);
         }
     }
 }

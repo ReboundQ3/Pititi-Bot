@@ -1,5 +1,6 @@
 using Discord.WebSocket;
 using Microsoft.Data.Sqlite;
+using PititiBot.Models;
 
 namespace PititiBot.Services;
 
@@ -23,15 +24,22 @@ public class LandmineService
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
+            MigrateLegacySchema(connection);
+
             var command = connection.CreateCommand();
             command.CommandText = @"
                 CREATE TABLE IF NOT EXISTS Landmines (
-                    ChannelId INTEGER PRIMARY KEY,
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ChannelId INTEGER NOT NULL,
                     InitialCountdown INTEGER NOT NULL,
                     RemainingMessages INTEGER NOT NULL,
                     PlacedByUserId INTEGER,
-                    PlacedByUsername TEXT
+                    PlacedByUsername TEXT,
+                    PlacedAt TEXT NOT NULL
                 )";
+            command.ExecuteNonQuery();
+
+            command.CommandText = "CREATE INDEX IF NOT EXISTS IX_Landmines_ChannelId ON Landmines (ChannelId)";
             command.ExecuteNonQuery();
 
             // Count existing landmines
@@ -49,191 +57,145 @@ public class LandmineService
         }
     }
 
-    private static void DeleteLandmine(SqliteConnection connection, ulong channelId)
+    // The old schema used ChannelId as PRIMARY KEY (one mine per channel) and had no
+    // Id / PlacedAt columns. Detect that layout and drop it so the new multi-mine
+    // schema can be created fresh.
+    private static void MigrateLegacySchema(SqliteConnection connection)
     {
-        var deleteCommand = connection.CreateCommand();
-        deleteCommand.CommandText = "DELETE FROM Landmines WHERE ChannelId = $channelId";
-        deleteCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-        deleteCommand.ExecuteNonQuery();
+        var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('Landmines') WHERE name = 'Id'";
+        var hasIdColumn = Convert.ToInt32(command.ExecuteScalar()) > 0;
+
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'Landmines'";
+        var tableExists = Convert.ToInt32(command.ExecuteScalar()) > 0;
+
+        if (tableExists && !hasIdColumn)
+        {
+            command.CommandText = "DROP TABLE Landmines";
+            command.ExecuteNonQuery();
+            Console.WriteLine("#> Pititi throw away old boom box list to make room for MANY booms!");
+        }
     }
 
-    public bool PlaceLandmine(ulong channelId, int countdown, ulong userId, string username)
+    private static Landmine ReadLandmine(SqliteDataReader reader)
+    {
+        return new Landmine
+        {
+            Id = reader.GetInt64(0),
+            ChannelId = (ulong)reader.GetInt64(1),
+            InitialCountdown = reader.GetInt32(2),
+            RemainingMessages = reader.GetInt32(3),
+            PlacedByUserId = reader.IsDBNull(4) ? 0 : (ulong)reader.GetInt64(4),
+            PlacedByUsername = reader.IsDBNull(5) ? "Unknown" : reader.GetString(5),
+            PlacedAt = DateTimeOffset.TryParse(reader.IsDBNull(6) ? null : reader.GetString(6), out var placedAt)
+                ? placedAt
+                : DateTimeOffset.UtcNow
+        };
+    }
+
+    private const string SelectColumns =
+        "Id, ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername, PlacedAt";
+
+    public Landmine? PlaceLandmine(ulong channelId, int countdown, ulong userId, string username)
     {
         try
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            // Check if landmine already exists and validate it
-            var checkCommand = connection.CreateCommand();
-            checkCommand.CommandText = "SELECT RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
-            checkCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-            var result = checkCommand.ExecuteScalar();
-
-            if (result != null)
-            {
-                var remaining = Convert.ToInt32(result);
-
-                if (remaining <= 0)
-                {
-                    // Clean up ghost landmine and continue to place new one
-                    DeleteLandmine(connection, channelId);
-                    Console.WriteLine($"#> Pititi clean up ghost boom box before placing new one in channel {channelId}!");
-                }
-                else
-                {
-                    // Valid landmine already exists
-                    return false;
-                }
-            }
-
-            // Insert new landmine
             var insertCommand = connection.CreateCommand();
             insertCommand.CommandText = @"
-                INSERT INTO Landmines (ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername)
-                VALUES ($channelId, $countdown, $countdown, $userId, $username)";
+                INSERT INTO Landmines (ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername, PlacedAt)
+                VALUES ($channelId, $countdown, $countdown, $userId, $username, $placedAt);
+                SELECT last_insert_rowid();";
             insertCommand.Parameters.AddWithValue("$channelId", (long)channelId);
             insertCommand.Parameters.AddWithValue("$countdown", countdown);
             insertCommand.Parameters.AddWithValue("$userId", (long)userId);
             insertCommand.Parameters.AddWithValue("$username", username);
-            insertCommand.ExecuteNonQuery();
+            insertCommand.Parameters.AddWithValue("$placedAt", DateTimeOffset.UtcNow.ToString("o"));
 
-            return true;
+            var newId = Convert.ToInt64(insertCommand.ExecuteScalar());
+
+            return new Landmine
+            {
+                Id = newId,
+                ChannelId = channelId,
+                InitialCountdown = countdown,
+                RemainingMessages = countdown,
+                PlacedByUserId = userId,
+                PlacedByUsername = username,
+                PlacedAt = DateTimeOffset.UtcNow
+            };
         }
         catch (Exception ex)
         {
             Console.WriteLine($"#> Pititi can't place boom box! Error: {ex.Message}");
-            return false;
+            return null;
         }
     }
 
-    public bool RemoveLandmine(ulong channelId, out int remainingMessages)
+    public List<Landmine> GetLandmines(ulong channelId)
     {
-        remainingMessages = 0;
+        var landmines = new List<Landmine>();
 
         try
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            // Get remaining messages before deleting
+            var command = connection.CreateCommand();
+            command.CommandText = $"SELECT {SelectColumns} FROM Landmines WHERE ChannelId = $channelId ORDER BY Id";
+            command.Parameters.AddWithValue("$channelId", (long)channelId);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                landmines.Add(ReadLandmine(reader));
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't get boom box list! Error: {ex.Message}");
+        }
+
+        return landmines;
+    }
+
+    // Removes a single landmine by its Id. Returns the removed landmine, or null if
+    // it didn't exist (or wasn't in this channel).
+    public Landmine? RemoveLandmine(ulong channelId, long landmineId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
             var selectCommand = connection.CreateCommand();
-            selectCommand.CommandText = "SELECT RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
+            selectCommand.CommandText = $"SELECT {SelectColumns} FROM Landmines WHERE Id = $id AND ChannelId = $channelId";
+            selectCommand.Parameters.AddWithValue("$id", landmineId);
             selectCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-            var result = selectCommand.ExecuteScalar();
 
-            if (result == null)
-                return false;
+            Landmine? landmine = null;
+            using (var reader = selectCommand.ExecuteReader())
+            {
+                if (reader.Read())
+                    landmine = ReadLandmine(reader);
+            }
 
-            remainingMessages = Convert.ToInt32(result);
+            if (landmine == null)
+                return null;
 
-            DeleteLandmine(connection, channelId);
+            var deleteCommand = connection.CreateCommand();
+            deleteCommand.CommandText = "DELETE FROM Landmines WHERE Id = $id";
+            deleteCommand.Parameters.AddWithValue("$id", landmineId);
+            deleteCommand.ExecuteNonQuery();
 
-            return true;
+            return landmine;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"#> Pititi can't remove boom box! Error: {ex.Message}");
-            return false;
-        }
-    }
-
-    public bool HasLandmine(ulong channelId)
-    {
-        try
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var command = connection.CreateCommand();
-            command.CommandText = "SELECT RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
-            command.Parameters.AddWithValue("$channelId", (long)channelId);
-            var result = command.ExecuteScalar();
-
-            if (result == null)
-                return false;
-
-            var remaining = Convert.ToInt32(result);
-
-            if (remaining <= 0)
-            {
-                DeleteLandmine(connection, channelId);
-                Console.WriteLine($"#> Pititi clean up ghost boom box in channel {channelId}!");
-                return false;
-            }
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"#> Pititi can't check boom box! Error: {ex.Message}");
-            return false;
-        }
-    }
-
-    public int GetRemainingMessages(ulong channelId)
-    {
-        try
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var command = connection.CreateCommand();
-            command.CommandText = "SELECT RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
-            command.Parameters.AddWithValue("$channelId", (long)channelId);
-            var result = command.ExecuteScalar();
-
-            if (result != null)
-                return Convert.ToInt32(result);
-
-            return 0;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"#> Pititi can't count boom box messages! Error: {ex.Message}");
-            return 0;
-        }
-    }
-
-    public bool GetLandmineStatus(ulong channelId, out int initialCountdown, out int remainingMessages, out string placedByUsername)
-    {
-        initialCountdown = 0;
-        remainingMessages = 0;
-        placedByUsername = string.Empty;
-
-        try
-        {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
-
-            var command = connection.CreateCommand();
-            command.CommandText = "SELECT InitialCountdown, RemainingMessages, PlacedByUsername FROM Landmines WHERE ChannelId = $channelId";
-            command.Parameters.AddWithValue("$channelId", (long)channelId);
-
-            using var reader = command.ExecuteReader();
-            if (reader.Read())
-            {
-                initialCountdown = reader.GetInt32(0);
-                remainingMessages = reader.GetInt32(1);
-                placedByUsername = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2);
-
-                if (remainingMessages <= 0)
-                {
-                    reader.Close();
-                    DeleteLandmine(connection, channelId);
-                    Console.WriteLine($"#> Pititi clean up ghost boom box in channel {channelId}!");
-                    return false;
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"#> Pititi can't get boom box status! Error: {ex.Message}");
-            return false;
+            return null;
         }
     }
 
@@ -248,30 +210,38 @@ public class LandmineService
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            // Get current remaining messages
-            var selectCommand = connection.CreateCommand();
-            selectCommand.CommandText = "SELECT RemainingMessages FROM Landmines WHERE ChannelId = $channelId";
-            selectCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-            var result = selectCommand.ExecuteScalar();
+            // Tick every landmine in this channel down by one.
+            var tickCommand = connection.CreateCommand();
+            tickCommand.CommandText = "UPDATE Landmines SET RemainingMessages = RemainingMessages - 1 WHERE ChannelId = $channelId";
+            tickCommand.Parameters.AddWithValue("$channelId", (long)channelId);
+            var affected = tickCommand.ExecuteNonQuery();
 
-            if (result == null)
-                return; // No landmine in this channel
+            if (affected == 0)
+                return; // No landmines in this channel
 
-            var remaining = Convert.ToInt32(result) - 1;
+            // Find any that just reached zero (or below) — those go BOOM.
+            var detonatedCount = 0;
+            var countCommand = connection.CreateCommand();
+            countCommand.CommandText = "SELECT COUNT(*) FROM Landmines WHERE ChannelId = $channelId AND RemainingMessages <= 0";
+            countCommand.Parameters.AddWithValue("$channelId", (long)channelId);
+            detonatedCount = Convert.ToInt32(countCommand.ExecuteScalar());
 
-            if (remaining <= 0)
+            if (detonatedCount == 0)
+                return;
+
+            // Clean up the detonated mines.
+            var deleteCommand = connection.CreateCommand();
+            deleteCommand.CommandText = "DELETE FROM Landmines WHERE ChannelId = $channelId AND RemainingMessages <= 0";
+            deleteCommand.Parameters.AddWithValue("$channelId", (long)channelId);
+            deleteCommand.ExecuteNonQuery();
+
+            if (detonatedCount == 1)
             {
-                DeleteLandmine(connection, channelId);
                 await message.Channel.SendMessageAsync($"💥 **BOOM!!** 💥\n{message.Author.Mention} STEPPED ON PITITI'S BOOM BOX!! IT GO BOOM!");
             }
             else
             {
-                // Update remaining messages
-                var updateCommand = connection.CreateCommand();
-                updateCommand.CommandText = "UPDATE Landmines SET RemainingMessages = $remaining WHERE ChannelId = $channelId";
-                updateCommand.Parameters.AddWithValue("$remaining", remaining);
-                updateCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-                updateCommand.ExecuteNonQuery();
+                await message.Channel.SendMessageAsync($"💥💥 **MEGA BOOM!!** 💥💥\n{message.Author.Mention} STEPPED ON {detonatedCount} PITITI BOOM BOXES AT ONCE!! BIG BIG BOOM!");
             }
         }
         catch (Exception ex)
