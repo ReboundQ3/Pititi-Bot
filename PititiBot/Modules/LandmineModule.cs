@@ -15,10 +15,10 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
         _interactionService = interactionService;
     }
 
-    [DefaultMemberPermissions(GuildPermission.ManageMessages)]
-    [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
     private const int MaxPlaceAtOnce = 25;
 
+    [DefaultMemberPermissions(GuildPermission.ManageMessages)]
+    [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
     public async Task HandleLandmineCommand(
         [Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action,
         [Summary("count", "How many boom boxes to place at once (default 1). Only used with Place.")] long count = 1,
