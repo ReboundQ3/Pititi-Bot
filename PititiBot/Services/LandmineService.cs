@@ -96,42 +96,64 @@ public class LandmineService
     private const string SelectColumns =
         "Id, ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername, PlacedAt";
 
-    public Landmine? PlaceLandmine(ulong channelId, int countdown, ulong userId, string username)
+    // Places multiple landmines in one transaction, each with its own random countdown
+    // supplied by the caller. Returns the created landmines (with their new Ids).
+    public List<Landmine> PlaceLandmines(ulong channelId, IReadOnlyList<int> countdowns, ulong userId, string username)
     {
+        var placed = new List<Landmine>();
+
         try
         {
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
+            using var transaction = connection.BeginTransaction();
+
             var insertCommand = connection.CreateCommand();
+            insertCommand.Transaction = transaction;
             insertCommand.CommandText = @"
                 INSERT INTO Landmines (ChannelId, InitialCountdown, RemainingMessages, PlacedByUserId, PlacedByUsername, PlacedAt)
                 VALUES ($channelId, $countdown, $countdown, $userId, $username, $placedAt);
                 SELECT last_insert_rowid();";
-            insertCommand.Parameters.AddWithValue("$channelId", (long)channelId);
-            insertCommand.Parameters.AddWithValue("$countdown", countdown);
-            insertCommand.Parameters.AddWithValue("$userId", (long)userId);
-            insertCommand.Parameters.AddWithValue("$username", username);
-            insertCommand.Parameters.AddWithValue("$placedAt", DateTimeOffset.UtcNow.ToString("o"));
 
-            var newId = Convert.ToInt64(insertCommand.ExecuteScalar());
+            var channelParam = insertCommand.Parameters.Add("$channelId", SqliteType.Integer);
+            var countdownParam = insertCommand.Parameters.Add("$countdown", SqliteType.Integer);
+            var userParam = insertCommand.Parameters.Add("$userId", SqliteType.Integer);
+            var usernameParam = insertCommand.Parameters.Add("$username", SqliteType.Text);
+            var placedAtParam = insertCommand.Parameters.Add("$placedAt", SqliteType.Text);
 
-            return new Landmine
+            channelParam.Value = (long)channelId;
+            userParam.Value = (long)userId;
+            usernameParam.Value = username;
+
+            foreach (var countdown in countdowns)
             {
-                Id = newId,
-                ChannelId = channelId,
-                InitialCountdown = countdown,
-                RemainingMessages = countdown,
-                PlacedByUserId = userId,
-                PlacedByUsername = username,
-                PlacedAt = DateTimeOffset.UtcNow
-            };
+                var placedAt = DateTimeOffset.UtcNow;
+                countdownParam.Value = countdown;
+                placedAtParam.Value = placedAt.ToString("o");
+
+                var newId = Convert.ToInt64(insertCommand.ExecuteScalar());
+
+                placed.Add(new Landmine
+                {
+                    Id = newId,
+                    ChannelId = channelId,
+                    InitialCountdown = countdown,
+                    RemainingMessages = countdown,
+                    PlacedByUserId = userId,
+                    PlacedByUsername = username,
+                    PlacedAt = placedAt
+                });
+            }
+
+            transaction.Commit();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"#> Pititi can't place boom box! Error: {ex.Message}");
-            return null;
+            Console.WriteLine($"#> Pititi can't place boom boxes! Error: {ex.Message}");
         }
+
+        return placed;
     }
 
     public List<Landmine> GetLandmines(ulong channelId)

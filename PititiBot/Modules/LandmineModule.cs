@@ -17,27 +17,44 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 
     [DefaultMemberPermissions(GuildPermission.ManageMessages)]
     [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
+    private const int MaxPlaceAtOnce = 25;
+
     public async Task HandleLandmineCommand(
         [Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action,
+        [Summary("count", "How many boom boxes to place at once (default 1). Only used with Place.")] long count = 1,
         [Summary("id", "The boom box Id to remove (see Status). Only used with Remove.")] long id = 0)
     {
         var channelId = Context.Channel.Id;
 
         if (action == "place")
         {
-            // Random number between 1 and 250
+            if (count < 1 || count > MaxPlaceAtOnce)
+            {
+                await RespondAsync($"PITITI ONLY PLACE 1 TO {MaxPlaceAtOnce} BOOM BOX AT ONCE! No more, no less!", ephemeral: true);
+                return;
+            }
+
+            // Random countdown between 1 and 250 for each landmine
             var random = new Random();
-            var countdown = random.Next(1, 250);
+            var countdowns = Enumerable.Range(0, (int)count).Select(_ => random.Next(1, 250)).ToList();
 
-            var landmine = BotConfig.LandmineService.PlaceLandmine(channelId, countdown, Context.User.Id, Context.User.GlobalName ?? Context.User.Username);
+            var placed = BotConfig.LandmineService.PlaceLandmines(channelId, countdowns, Context.User.Id, Context.User.GlobalName ?? Context.User.Username);
 
-            if (landmine == null)
+            if (placed.Count == 0)
             {
                 await RespondAsync("PITITI BOOM BOX BROKE! No place this time, try again!", ephemeral: true);
                 return;
             }
 
-            await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 (#{landmine.Id}) Will go BOOM in.. Shhhh Gorb say is secret");
+            if (placed.Count == 1)
+            {
+                await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 (#{placed[0].Id}) Will go BOOM in.. Shhhh Gorb say is secret");
+            }
+            else
+            {
+                var ids = string.Join(", ", placed.Select(l => $"#{l.Id}"));
+                await RespondAsync($"PITITI PLACE {placed.Count} BOOM BOXES!! 💣💣💣 ({ids}) All go BOOM sometime.. Shhhh Gorb say is secret");
+            }
         }
         else if (action == "remove")
         {
