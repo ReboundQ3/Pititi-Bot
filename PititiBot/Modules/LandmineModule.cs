@@ -20,7 +20,7 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
     [DefaultMemberPermissions(GuildPermission.ManageMessages)]
     [SlashCommand("landmine", "Pititi places a landmine in the chat for someone to stumble over")]
     public async Task HandleLandmineCommand(
-        [Choice("Place", "place"), Choice("Remove", "remove"), Choice("Status", "status")] string action,
+        [Choice("Place", "place"), Choice("Remove", "remove"), Choice("Clear All", "clearall"), Choice("Status", "status")] string action,
         [Summary("count", "How many boom boxes to place at once (default 1). Only used with Place.")] long count = 1,
         [Summary("id", "The boom box Id to remove (see Status). Only used with Remove.")] long id = 0)
     {
@@ -73,6 +73,18 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
             }
 
             await RespondAsync($"PITITI TAKE BOOM BOX #{removed.Id} AWAY! 🧹 Was gonna boom in {removed.RemainingMessages} messages. Is safe now!");
+        }
+        else if (action == "clearall")
+        {
+            var cleared = BotConfig.LandmineService.ClearLandmines(channelId);
+
+            if (cleared == 0)
+            {
+                await RespondAsync("NO BOOM BOX HERE! Nothing for Pititi to cleansies of up!", ephemeral: true);
+                return;
+            }
+
+            await RespondAsync($"PITITI SWEEPSIES OF UP {cleared} BOOM BOX(ES)! 🧹🧹 All gone, is of safesies now!");
         }
         else if (action == "status")
         {

@@ -221,6 +221,26 @@ public class LandmineService
         }
     }
 
+    // Removes every landmine in the channel. Returns how many were cleared.
+    public int ClearLandmines(ulong channelId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var deleteCommand = connection.CreateCommand();
+            deleteCommand.CommandText = "DELETE FROM Landmines WHERE ChannelId = $channelId";
+            deleteCommand.Parameters.AddWithValue("$channelId", (long)channelId);
+            return deleteCommand.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't clear boom boxesies! Error: {ex.Message}");
+            return 0;
+        }
+    }
+
     public async Task HandleMessage(SocketMessage message)
     {
         if (message.Author.IsBot) return;
