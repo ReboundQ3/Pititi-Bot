@@ -1,3 +1,4 @@
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Data.Sqlite;
 using PititiBot.Models;
@@ -40,6 +41,23 @@ public class LandmineService
             command.ExecuteNonQuery();
 
             command.CommandText = "CREATE INDEX IF NOT EXISTS IX_Landmines_ChannelId ON Landmines (ChannelId)";
+            command.ExecuteNonQuery();
+
+            // Every detonation event gets logged here so Pititi can crown the
+            // people who step on the most boom boxes.
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS LandmineHits (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    GuildId INTEGER NOT NULL,
+                    ChannelId INTEGER NOT NULL,
+                    UserId INTEGER NOT NULL,
+                    Username TEXT,
+                    MinesHit INTEGER NOT NULL,
+                    HitAt TEXT NOT NULL
+                )";
+            command.ExecuteNonQuery();
+
+            command.CommandText = "CREATE INDEX IF NOT EXISTS IX_LandmineHits_GuildId ON LandmineHits (GuildId)";
             command.ExecuteNonQuery();
 
             // Count existing landmines
@@ -216,7 +234,7 @@ public class LandmineService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"#> Pititi can't remove boom box! Error: {ex.Message}");
+            Console.WriteLine($"#> Pititi can't remove boom boxsies! Error: {ex.Message}");
             return null;
         }
     }
@@ -239,6 +257,61 @@ public class LandmineService
             Console.WriteLine($"#> Pititi can't clear boom boxesies! Error: {ex.Message}");
             return 0;
         }
+    }
+
+    public class LeaderboardEntry
+    {
+        public ulong UserId { get; set; }
+        public string Username { get; set; } = "Unknown";
+        public int TotalMines { get; set; }
+        public int TimesExploded { get; set; }
+    }
+
+    // Returns the top boom-box steppers for a guild, ranked by total mines hit
+    // (so a MEGA BOOM counts for every mine in it), then by number of explosions.
+    public List<LeaderboardEntry> GetLeaderboard(ulong guildId, int limit = 10)
+    {
+        var entries = new List<LeaderboardEntry>();
+
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT h.UserId,
+                       SUM(h.MinesHit) AS TotalMines,
+                       COUNT(*) AS TimesExploded,
+                       (SELECT Username FROM LandmineHits
+                        WHERE UserId = h.UserId AND GuildId = h.GuildId
+                        ORDER BY Id DESC LIMIT 1) AS Username
+                FROM LandmineHits h
+                WHERE h.GuildId = $guildId
+                GROUP BY h.UserId
+                ORDER BY TotalMines DESC, TimesExploded DESC
+                LIMIT $limit";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+            command.Parameters.AddWithValue("$limit", limit);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                entries.Add(new LeaderboardEntry
+                {
+                    UserId = (ulong)reader.GetInt64(0),
+                    TotalMines = reader.GetInt32(1),
+                    TimesExploded = reader.GetInt32(2),
+                    Username = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3)
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't count the shiny hatsies! Error: {ex.Message}");
+        }
+
+        return entries;
     }
 
     public async Task HandleMessage(SocketMessage message)
@@ -276,6 +349,20 @@ public class LandmineService
             deleteCommand.CommandText = "DELETE FROM Landmines WHERE ChannelId = $channelId AND RemainingMessages <= 0";
             deleteCommand.Parameters.AddWithValue("$channelId", (long)channelId);
             deleteCommand.ExecuteNonQuery();
+
+            // Log who stepped on them so they can claim (or lose) the crown.
+            var guildId = (message.Channel as IGuildChannel)?.GuildId ?? 0;
+            var hitCommand = connection.CreateCommand();
+            hitCommand.CommandText = @"
+                INSERT INTO LandmineHits (GuildId, ChannelId, UserId, Username, MinesHit, HitAt)
+                VALUES ($guildId, $channelId, $userId, $username, $minesHit, $hitAt)";
+            hitCommand.Parameters.AddWithValue("$guildId", (long)guildId);
+            hitCommand.Parameters.AddWithValue("$channelId", (long)channelId);
+            hitCommand.Parameters.AddWithValue("$userId", (long)message.Author.Id);
+            hitCommand.Parameters.AddWithValue("$username", message.Author.GlobalName ?? message.Author.Username);
+            hitCommand.Parameters.AddWithValue("$minesHit", detonatedCount);
+            hitCommand.Parameters.AddWithValue("$hitAt", DateTimeOffset.UtcNow.ToString("o"));
+            hitCommand.ExecuteNonQuery();
 
             if (detonatedCount == 1)
             {
