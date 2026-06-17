@@ -253,19 +253,23 @@ public class SS14StatusService
         // Round started (run_level changed from 0 to 1+)
         if (previous.run_level == 0 && current.run_level > 0)
         {
-            await NotifySubscribedChannels(serverUrl, $"🚀 **ROUND START!!**\nPititi see round #{current.round_id} is STARTING!! Map is {current.map ?? "unknown"}! Is time for SPACE ADVENTURES!!", notifyRoundStart: true);
+            await NotifySubscribedChannels(serverUrl, $"🚀 **ROUND START!!**\nPititi see round #{current.round_id} is STARTING!! Map is {current.map ?? "unknown"}! Is time for SPACE FUN!!", notifyRoundStart: true);
         }
 
         // Round ended (run_level changed from 1+ to 0)
         if (previous.run_level > 0 && current.run_level == 0)
         {
-            await NotifySubscribedChannels(serverUrl, $"🏁 **ROUND END!!**\nPititi see round #{previous.round_id} is DONE!! Was good round? Pititi hope so!", notifyRoundEnd: true);
+            var roundTime = GetRoundDuration(serverUrl, previous.round_id);
+            var timeText = roundTime.HasValue
+                ? $"\nRound was **{FormatRoundTime(roundTime.Value)}** long!"
+                : "";
+            await NotifySubscribedChannels(serverUrl, $"🏁 **ROUND END!!**\nPititi see round #{previous.round_id} is DONE!!{timeText} Was good round? Pititi hope so!", notifyRoundEnd: true);
         }
 
         // New round started (round_id changed)
         if (current.round_id != previous.round_id)
         {
-            await NotifySubscribedChannels(serverUrl, $"🔄 **NEW ROUND!!**\nPititi see new round #{current.round_id} is here! Preset: {current.preset}", notifyRoundStart: true);
+            await NotifySubscribedChannels(serverUrl, $"🔄 **NEW ROUND!!**\nPititi see new round #{current.round_id} is here! Game is {current.preset}!", notifyRoundStart: true);
         }
     }
 
@@ -407,5 +411,47 @@ public class SS14StatusService
         {
             Console.WriteLine($"#> Pititi can't send to channel {channelId}! Error: {ex.Message}");
         }
+    }
+
+    // Works out how long a round lasted by looking at the earliest in-round poll
+    // we saved for it (RunLevel > 0) and measuring up to now. Reads from the DB so
+    // it still works after a restart. Returns null if we never saw the round playing.
+    private TimeSpan? GetRoundDuration(string serverUrl, int roundId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT MIN(Timestamp) FROM ServerStatus
+                WHERE ServerUrl = $serverUrl AND RoundId = $roundId AND RunLevel > 0";
+            command.Parameters.AddWithValue("$serverUrl", serverUrl);
+            command.Parameters.AddWithValue("$roundId", roundId);
+
+            var result = command.ExecuteScalar();
+            if (result == null || result == DBNull.Value)
+                return null;
+
+            var start = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(result));
+            return DateTimeOffset.UtcNow - start;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't count round time! Error: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static string FormatRoundTime(TimeSpan duration)
+    {
+        if (duration.TotalHours >= 1)
+            return $"{(int)duration.TotalHours}h {duration.Minutes}m";
+
+        if (duration.TotalMinutes >= 1)
+            return $"{duration.Minutes}m {duration.Seconds}s";
+
+        return $"{duration.Seconds}s";
     }
 }

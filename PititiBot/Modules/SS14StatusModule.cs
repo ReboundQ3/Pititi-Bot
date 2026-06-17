@@ -24,7 +24,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
             var guildUser = Context.User as Discord.WebSocket.SocketGuildUser;
             if (guildUser == null || !guildUser.GuildPermissions.Administrator)
             {
-                await RespondAsync("❌ ONLY ADMINS CAN CONFIGURE SERVER!! Pititi say no!", ephemeral: true);
+                await RespondAsync("❌ ONLY BIG BOSS CAN SET UP SERVER!! Pititi say no!", ephemeral: true);
                 return;
             }
 
@@ -50,7 +50,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
                 if (testStatus != null)
                 {
-                    await FollowupAsync($"✅ **SERVER CONFIGURED!!**\nPititi now watching: **{testStatus.name}**\nURL: {url}", ephemeral: true);
+                    await FollowupAsync($"✅ **SERVER ALL SET UP!!**\nPititi now watching: **{testStatus.name}**\nURL: {url}", ephemeral: true);
                 }
                 else
                 {
@@ -59,7 +59,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
             }
             else
             {
-                await RespondAsync("❌ PITITI CAN'T SAVE SERVER!! URL format wrong? Must start with http:// or https://", ephemeral: true);
+                await RespondAsync("❌ PITITI CAN'T SAVE SERVER!! URL look wrong? Must start with http:// or https://", ephemeral: true);
             }
             return;
         }
@@ -69,7 +69,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
         if (serverUrl == null)
         {
-            await RespondAsync("❌ **NO SERVER CONFIGURED!!**\nPititi don't know which server to watch!\n\nAdmin can configure with:\n`/server action:config url:https://your-server.com/status`", ephemeral: true);
+            await RespondAsync("❌ **NO SERVER SET UP!!**\nPititi don't know which server to watch!\n\nBig boss can set up with:\n`/server action:config url:https://your-server.com/status`", ephemeral: true);
             return;
         }
 
@@ -81,7 +81,7 @@ public class SS14StatusModule : InteractionModuleBase<SocketInteractionContext>
 
             if (status == null)
             {
-                await FollowupAsync($"😢 PITITI CAN'T SEE SERVER!! Maybe server is sleeping?\nConfigured URL: {serverUrl}", ephemeral: true);
+                await FollowupAsync($"😢 PITITI CAN'T SEE SERVER!! Maybe server is sleeping?\nServer URL: {serverUrl}", ephemeral: true);
                 return;
             }
 

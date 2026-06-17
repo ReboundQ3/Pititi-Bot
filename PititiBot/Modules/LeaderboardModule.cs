@@ -12,7 +12,7 @@ public class LeaderboardModule : InteractionModuleBase<SocketInteractionContext>
 
         if (guildId == null)
         {
-            await RespondAsync("❌ PITITI ONLY KEEP SHINE HATSIES IN SERVERS!! Not in DMs!", ephemeral: true);
+            await RespondAsync("❌ PITITI ONLY KEEP SHINY HATSIES IN SERVERS!! Not in DMs!", ephemeral: true);
             return;
         }
 

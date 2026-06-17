@@ -20,8 +20,8 @@ public class EightballModule : InteractionModuleBase<SocketInteractionContext>
         "🔮 Reply of HAZY... Pititi cannot see clear...",
         "🔮 Ask of AGAIN later... Pititi is confused...",
         "🔮 Better not of TELL you now... shh...",
-        "🔮 Cannot of PREDICT now... ball is cloudy...",
-        "🔮 Concentrate and of ASK again... Pititi needs think...",
+        "🔮 Cannot of SEE now... ball is cloudy...",
+        "🔮 Think hard and of ASK again... Pititi needs think...",
 
         // Negative responses
         "🔮 Don't of COUNT on it... Pititi says no...",

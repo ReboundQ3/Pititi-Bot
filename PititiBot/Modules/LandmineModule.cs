@@ -48,12 +48,12 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 
             if (placed.Count == 1)
             {
-                await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 (#{placed[0].Id}) Will go BOOM in.. Shhhh Gorb say is secret");
+                await RespondAsync($"PITITI PLACE BOOM BOX!! 💣 (#{placed[0].Id}) Will go BOOM in.. Shhhh Gorb say is secretsies");
             }
             else
             {
                 var ids = string.Join(", ", placed.Select(l => $"#{l.Id}"));
-                await RespondAsync($"PITITI PLACE {placed.Count} BOOM BOXES!! 💣💣💣 ({ids}) All go BOOM sometime.. Shhhh Gorb say is secret");
+                await RespondAsync($"PITITI PLACE {placed.Count} BOOM BOXES!! 💣💣💣 ({ids}) All go BOOM sometime.. Shhhh Gorb say is secretsies");
             }
         }
         else if (action == "remove")
@@ -72,7 +72,7 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
                 return;
             }
 
-            await RespondAsync($"PITITI TAKE BOOM BOX #{removed.Id} AWAY! 🧹 Was gonna boom in {removed.RemainingMessages} messages. Is safe now!");
+            await RespondAsync($"PITITI TAKE BOOM BOX #{removed.Id} AWAY! 🧹 Was gonna boom in {removed.RemainingMessages} messages. Is safesies now!");
         }
         else if (action == "clearall")
         {
@@ -92,7 +92,7 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
 
             if (landmines.Count == 0)
             {
-                await RespondAsync("NO BOOM BOX HERE! Is safe place, no boom!", ephemeral: true);
+                await RespondAsync("NO BOOM BOX HERE! Is safesies place, no boom!", ephemeral: true);
                 return;
             }
 
@@ -110,7 +110,7 @@ public class LandmineModule : InteractionModuleBase<SocketInteractionContext>
                 embedBuilder.AddField(
                     $"💣 Boom box #{landmine.Id}",
                     $"Placed by **{landmine.PlacedByUsername}** <t:{landmine.PlacedAt.ToUnixTimeSeconds()}:R>\n" +
-                    $"Messages passed: {landmine.MessagesElapsed} • Remaining: {landmine.RemainingMessages}");
+                    $"Messages walksies by: {landmine.MessagesElapsed} • Boom in: {landmine.RemainingMessages} more");
             }
 
             if (landmines.Count > maxFields)
