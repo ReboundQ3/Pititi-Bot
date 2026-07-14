@@ -363,14 +363,22 @@ public class LandmineService
             hitCommand.Parameters.AddWithValue("$minesHit", detonatedCount);
             hitCommand.Parameters.AddWithValue("$hitAt", DateTimeOffset.UtcNow.ToString("o"));
             hitCommand.ExecuteNonQuery();
+            
+            // Start TsjipTsjip's troll code for Midnight and Utmanarn.
+            var boxType = message.Author.Id.ToString() switch
+            {
+                "213062480035840002" => "boop", // Midnight
+                "180552909073678336" => "boop", // Utmanarn
+                _ => "boom"
+            };
 
             if (detonatedCount == 1)
             {
-                await message.Channel.SendMessageAsync($"💥 **BOOM!!** 💥\n{message.Author.Mention} STEPPED ON PITITI'S BOOM BOX!! IT GO BOOM!");
+                await message.Channel.SendMessageAsync($"💥 **BOOM!!** 💥\n{message.Author.Mention} STEPPED ON PITITI'S {boxType.ToUpper()} BOX!! IT GO {boxType.ToUpper()}!");
             }
             else
             {
-                await message.Channel.SendMessageAsync($"💥💥 **MEGA BOOM!!** 💥💥\n{message.Author.Mention} STEPPED ON {detonatedCount} PITITI BOOM BOXES AT ONCE!! BIG BIG BOOM!");
+                await message.Channel.SendMessageAsync($"💥💥 **MEGA BOOM!!** 💥💥\n{message.Author.Mention} STEPPED ON {detonatedCount} PITITI {boxType.ToUpper()} BOXES AT ONCE!! BIG BIG {boxType.ToUpper()}!");
             }
         }
         catch (Exception ex)
