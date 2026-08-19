@@ -60,6 +60,19 @@ public class LandmineService
             command.CommandText = "CREATE INDEX IF NOT EXISTS IX_LandmineHits_GuildId ON LandmineHits (GuildId)";
             command.ExecuteNonQuery();
 
+            // People blessed with godmode tiptoe through the minefield untouched.
+            // Scoped per guild so one server's mods can't hand out immunity elsewhere.
+            command.CommandText = @"
+                CREATE TABLE IF NOT EXISTS Godmode (
+                    GuildId INTEGER NOT NULL,
+                    UserId INTEGER NOT NULL,
+                    Username TEXT,
+                    GrantedByUsername TEXT,
+                    GrantedAt TEXT NOT NULL,
+                    PRIMARY KEY (GuildId, UserId)
+                )";
+            command.ExecuteNonQuery();
+
             // Count existing landmines
             command.CommandText = "SELECT COUNT(*) FROM Landmines";
             var count = Convert.ToInt32(command.ExecuteScalar());
@@ -314,11 +327,134 @@ public class LandmineService
         return entries;
     }
 
+    public class GodmodeEntry
+    {
+        public ulong UserId { get; set; }
+        public string Username { get; set; } = "Unknown";
+        public string GrantedByUsername { get; set; } = "Unknown";
+        public DateTimeOffset GrantedAt { get; set; }
+    }
+
+    // Blesses a user so landmines ignore them entirely. Returns false if they were
+    // already blessed (the composite primary key makes a repeat add a no-op).
+    public bool AddGodmode(ulong guildId, ulong userId, string username, string grantedByUsername)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                INSERT OR IGNORE INTO Godmode (GuildId, UserId, Username, GrantedByUsername, GrantedAt)
+                VALUES ($guildId, $userId, $username, $grantedBy, $grantedAt)";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+            command.Parameters.AddWithValue("$userId", (long)userId);
+            command.Parameters.AddWithValue("$username", username);
+            command.Parameters.AddWithValue("$grantedBy", grantedByUsername);
+            command.Parameters.AddWithValue("$grantedAt", DateTimeOffset.UtcNow.ToString("o"));
+
+            return command.ExecuteNonQuery() > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't give shiny protectings! Error: {ex.Message}");
+            return false;
+        }
+    }
+
+    // Takes the blessing away. Returns false if they never had it.
+    public bool RemoveGodmode(ulong guildId, ulong userId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM Godmode WHERE GuildId = $guildId AND UserId = $userId";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+            command.Parameters.AddWithValue("$userId", (long)userId);
+
+            return command.ExecuteNonQuery() > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't take shiny protectings away! Error: {ex.Message}");
+            return false;
+        }
+    }
+
+    public List<GodmodeEntry> GetGodmodes(ulong guildId)
+    {
+        var entries = new List<GodmodeEntry>();
+
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT UserId, Username, GrantedByUsername, GrantedAt
+                FROM Godmode WHERE GuildId = $guildId ORDER BY GrantedAt";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                entries.Add(new GodmodeEntry
+                {
+                    UserId = (ulong)reader.GetInt64(0),
+                    Username = reader.IsDBNull(1) ? "Unknown" : reader.GetString(1),
+                    GrantedByUsername = reader.IsDBNull(2) ? "Unknown" : reader.GetString(2),
+                    GrantedAt = DateTimeOffset.TryParse(reader.IsDBNull(3) ? null : reader.GetString(3), out var grantedAt)
+                        ? grantedAt
+                        : DateTimeOffset.UtcNow
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't get shiny protectings list! Error: {ex.Message}");
+        }
+
+        return entries;
+    }
+
+    // Checked on every single message, so it stays a cheap COUNT. If the lookup
+    // breaks we fail open and let the booms happen — better than muting the bot.
+    public bool IsGodmode(ulong guildId, ulong userId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM Godmode WHERE GuildId = $guildId AND UserId = $userId";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+            command.Parameters.AddWithValue("$userId", (long)userId);
+
+            return Convert.ToInt32(command.ExecuteScalar()) > 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't check shiny protectings! Error: {ex.Message}");
+            return false;
+        }
+    }
+
     public async Task HandleMessage(SocketMessage message)
     {
         if (message.Author.IsBot) return;
 
         var channelId = message.Channel.Id;
+        var guildId = (message.Channel as IGuildChannel)?.GuildId ?? 0;
+
+        // Godmode users tiptoe through the minefield: nothing ticks, nothing booms,
+        // nothing is logged. The mines sit exactly where they were for the next mortal.
+        if (guildId != 0 && IsGodmode(guildId, message.Author.Id)) return;
 
         try
         {
@@ -351,7 +487,6 @@ public class LandmineService
             deleteCommand.ExecuteNonQuery();
 
             // Log who stepped on them so they can claim (or lose) the crown.
-            var guildId = (message.Channel as IGuildChannel)?.GuildId ?? 0;
             var hitCommand = connection.CreateCommand();
             hitCommand.CommandText = @"
                 INSERT INTO LandmineHits (GuildId, ChannelId, UserId, Username, MinesHit, HitAt)
