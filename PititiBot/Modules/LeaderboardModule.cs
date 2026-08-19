@@ -5,6 +5,9 @@ namespace PititiBot.Modules;
 
 public class LeaderboardModule : InteractionModuleBase<SocketInteractionContext>
 {
+    private const int DisplayLimit = 25;
+    private const string Separator = "────────────────────────";
+
     [SlashCommand("leaderboard", "Pititi shows who steps on the most boom boxes!")]
     public async Task HandleLeaderboardCommand()
     {
@@ -16,7 +19,7 @@ public class LeaderboardModule : InteractionModuleBase<SocketInteractionContext>
             return;
         }
 
-        var entries = BotConfig.LandmineService.GetLeaderboard(guildId.Value);
+        var entries = BotConfig.LandmineService.GetLeaderboard(guildId.Value, DisplayLimit);
 
         if (entries.Count == 0)
         {
@@ -26,11 +29,22 @@ public class LeaderboardModule : InteractionModuleBase<SocketInteractionContext>
 
         var medals = new[] { "🥇", "🥈", "🥉" };
         var lines = new List<string>();
-        for (int i = 0; i < entries.Count; i++)
+        foreach (var entry in entries)
         {
-            var entry = entries[i];
-            var rank = i < medals.Length ? medals[i] : $"**#{i + 1}**";
+            var rank = entry.Rank <= medals.Length ? medals[entry.Rank - 1] : $"**#{entry.Rank}**";
             lines.Add($"{rank} **{entry.Username}** — {entry.TotalMines} boom boxsies over {entry.TimesExploded} big boom(s)!");
+        }
+
+        // People too far down to make the list still get to see where they stand.
+        var caller = BotConfig.LandmineService.GetUserRank(guildId.Value, Context.User.Id);
+
+        if (caller == null)
+        {
+            lines.Add($"\n{Separator}\nYOU NEVER WALKSIES ON BOOM BOX!! Is of boring!! Go find yaya! 💣");
+        }
+        else if (caller.Rank > entries.Count)
+        {
+            lines.Add($"\n{Separator}\nYOU IS OF **#{caller.Rank}**!! {caller.TotalMines} boom boxsies over {caller.TimesExploded} big boom(s)!");
         }
 
         var embed = new EmbedBuilder()

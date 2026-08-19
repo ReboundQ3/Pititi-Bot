@@ -278,11 +278,38 @@ public class LandmineService
         public string Username { get; set; } = "Unknown";
         public int TotalMines { get; set; }
         public int TimesExploded { get; set; }
+        public int Rank { get; set; }
     }
 
-    // Returns the top boom-box steppers for a guild, ranked by total mines hit
-    // (so a MEGA BOOM counts for every mine in it), then by number of explosions.
-    public List<LeaderboardEntry> GetLeaderboard(ulong guildId, int limit = 10)
+    // Ranking lives in SQL rather than in the module so the top-N list and a single
+    // person's placing can never disagree about what number someone is. Ranked by
+    // total mines hit (a MEGA BOOM counts for every mine in it), then by explosions.
+    private const string RankedBoardQuery = @"
+        SELECT h.UserId,
+               SUM(h.MinesHit) AS TotalMines,
+               COUNT(*) AS TimesExploded,
+               (SELECT Username FROM LandmineHits
+                WHERE UserId = h.UserId AND GuildId = h.GuildId
+                ORDER BY Id DESC LIMIT 1) AS Username,
+               ROW_NUMBER() OVER (ORDER BY SUM(h.MinesHit) DESC, COUNT(*) DESC) AS Rank
+        FROM LandmineHits h
+        WHERE h.GuildId = $guildId
+        GROUP BY h.UserId";
+
+    private static LeaderboardEntry ReadLeaderboardEntry(SqliteDataReader reader)
+    {
+        return new LeaderboardEntry
+        {
+            UserId = (ulong)reader.GetInt64(0),
+            TotalMines = reader.GetInt32(1),
+            TimesExploded = reader.GetInt32(2),
+            Username = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3),
+            Rank = reader.GetInt32(4)
+        };
+    }
+
+    // Returns the top boom-box steppers for a guild.
+    public List<LeaderboardEntry> GetLeaderboard(ulong guildId, int limit = 25)
     {
         var entries = new List<LeaderboardEntry>();
 
@@ -292,31 +319,14 @@ public class LandmineService
             connection.Open();
 
             var command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT h.UserId,
-                       SUM(h.MinesHit) AS TotalMines,
-                       COUNT(*) AS TimesExploded,
-                       (SELECT Username FROM LandmineHits
-                        WHERE UserId = h.UserId AND GuildId = h.GuildId
-                        ORDER BY Id DESC LIMIT 1) AS Username
-                FROM LandmineHits h
-                WHERE h.GuildId = $guildId
-                GROUP BY h.UserId
-                ORDER BY TotalMines DESC, TimesExploded DESC
-                LIMIT $limit";
+            command.CommandText = $"SELECT * FROM ({RankedBoardQuery}) ORDER BY Rank LIMIT $limit";
             command.Parameters.AddWithValue("$guildId", (long)guildId);
             command.Parameters.AddWithValue("$limit", limit);
 
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                entries.Add(new LeaderboardEntry
-                {
-                    UserId = (ulong)reader.GetInt64(0),
-                    TotalMines = reader.GetInt32(1),
-                    TimesExploded = reader.GetInt32(2),
-                    Username = reader.IsDBNull(3) ? "Unknown" : reader.GetString(3)
-                });
+                entries.Add(ReadLeaderboardEntry(reader));
             }
         }
         catch (Exception ex)
@@ -325,6 +335,30 @@ public class LandmineService
         }
 
         return entries;
+    }
+
+    // Where one specific person sits on the board, however far down that is.
+    // Null means they have never stepped on a mine in this guild at all.
+    public LeaderboardEntry? GetUserRank(ulong guildId, ulong userId)
+    {
+        try
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            var command = connection.CreateCommand();
+            command.CommandText = $"SELECT * FROM ({RankedBoardQuery}) WHERE UserId = $userId";
+            command.Parameters.AddWithValue("$guildId", (long)guildId);
+            command.Parameters.AddWithValue("$userId", (long)userId);
+
+            using var reader = command.ExecuteReader();
+            return reader.Read() ? ReadLeaderboardEntry(reader) : null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"#> Pititi can't find your hatsie place! Error: {ex.Message}");
+            return null;
+        }
     }
 
     public class GodmodeEntry

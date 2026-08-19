@@ -17,7 +17,7 @@ A Space Station 14 Discord bot starring Pititi, a small enthusiastic VOX with a 
 | `/dice` | Roll dice (D4–D100, 1–10 at once) | |
 | `/8ball` | Ask the magic eightball | |
 | `/landmine` | Plant "boom boxes" that explode after a random number of messages | `place` / `remove` / `clearall` / `status` · needs *Manage Messages* |
-| `/leaderboard` | Server ranking of who stepped on the most boom boxes | Top 10, MEGA BOOMs count per mine |
+| `/leaderboard` | Server ranking of who stepped on the most boom boxes | Top 25 + your own placing, MEGA BOOMs count per mine |
 | `/server` | SS14 server status + round notifications | `status` / `subscribe` / `unsubscribe` / `config` (admin) |
 | `/report` | File a bug or feature request as a GitHub issue | Opens a modal; repos are server-whitelisted |
 
